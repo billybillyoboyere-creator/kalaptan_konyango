@@ -109,11 +109,11 @@ def build_member_insert_query(columns=None, data=None):
 BASE_DIR = Path(__file__).resolve().parent
 SCHEMA_PATH = BASE_DIR.parent / "database" / "schema.sql"
 MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST") or os.getenv("MYSQLHOST") or "127.0.0.1",
-    "port": int(os.getenv("MYSQL_PORT") or os.getenv("MYSQLPORT") or "3306"),
-    "user": os.getenv("MYSQL_USER") or os.getenv("MYSQLUSER") or "root",
-    "password": os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQLPASSWORD") or "34717215",
-    "database": os.getenv("MYSQL_DATABASE") or os.getenv("MYSQLDATABASE") or "kalapatan_db",
+    "host": os.environ.get("MYSQLHOST") or os.environ.get("MYSQL_HOST") or "127.0.0.1",
+    "port": int(os.environ.get("MYSQLPORT") or os.environ.get("MYSQL_PORT") or "3306"),
+    "user": os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root",
+    "password": os.environ.get("MYSQLPASSWORD") or os.environ.get("MYSQL_PASSWORD") or "34717215",
+    "database": os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db",
     "autocommit": False,
 }
 
