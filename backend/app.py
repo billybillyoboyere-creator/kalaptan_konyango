@@ -109,11 +109,11 @@ def build_member_insert_query(columns=None, data=None):
 BASE_DIR = Path(__file__).resolve().parent
 SCHEMA_PATH = BASE_DIR.parent / "database" / "schema.sql"
 MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST", "127.0.0.1"),
-    "port": int(os.getenv("MYSQL_PORT", "3306")),
-    "user": os.getenv("MYSQL_USER", "root"),
-    "password": os.getenv("MYSQL_PASSWORD", "34717215"),
-    "database": os.getenv("MYSQL_DATABASE", "kalapatan_db"),
+    "host": os.getenv("MYSQL_HOST") or os.getenv("MYSQLHOST") or "127.0.0.1",
+    "port": int(os.getenv("MYSQL_PORT") or os.getenv("MYSQLPORT") or "3306"),
+    "user": os.getenv("MYSQL_USER") or os.getenv("MYSQLUSER") or "root",
+    "password": os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQLPASSWORD") or "34717215",
+    "database": os.getenv("MYSQL_DATABASE") or os.getenv("MYSQLDATABASE") or "kalapatan_db",
     "autocommit": False,
 }
 
@@ -1622,4 +1622,4 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
