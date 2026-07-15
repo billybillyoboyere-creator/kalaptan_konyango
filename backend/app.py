@@ -118,6 +118,13 @@ MYSQL_CONFIG = {
 }
 
 
+def _get_mysql_connection():
+    try:
+        return mysql.connector.connect(**MYSQL_CONFIG), None
+    except Error as exc:
+        return None, str(exc)
+
+
 def serialize_row(row):
     if row is None:
         return None
@@ -274,10 +281,16 @@ def create_app():
         return app.send_static_file("index.html")
 
     def get_connection():
-        return mysql.connector.connect(**MYSQL_CONFIG)
+        conn, error = _get_mysql_connection()
+        if conn is None:
+            raise RuntimeError(error or "Database unavailable")
+        return conn
 
     def init_db():
-        conn = mysql.connector.connect(**MYSQL_CONFIG)
+        conn, error = _get_mysql_connection()
+        if conn is None:
+            app.logger.warning("Database unavailable during init: %s", error)
+            return False
         cursor = None
         try:
             cursor = conn.cursor()
@@ -519,12 +532,14 @@ def create_app():
                     withdrawal_columns.add("created_at")
 
             conn.commit()
+            return True
         except Error as exc:
             try:
                 conn.rollback()
             except Error:
                 pass
-            raise exc
+            app.logger.warning("Database initialization skipped due to error: %s", exc)
+            return False
         finally:
             if cursor is not None:
                 cursor.close()
@@ -534,7 +549,12 @@ def create_app():
 
     @app.get("/api/health")
     def health():
-        return jsonify({"status": "ok", "service": "kalapatan-api", "database": MYSQL_CONFIG["database"]})
+        db_state = "unavailable"
+        conn, error = _get_mysql_connection()
+        if conn is not None:
+            db_state = "ready"
+            conn.close()
+        return jsonify({"status": "ok", "service": "kalapatan-api", "database": MYSQL_CONFIG["database"], "database_state": db_state, "database_error": error if error else None})
 
     @app.get("/api/forms")
     def list_uploaded_forms():

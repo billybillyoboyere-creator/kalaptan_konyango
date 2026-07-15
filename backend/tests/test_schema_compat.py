@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from mysql.connector import Error
+
 from app import build_member_insert_query, build_member_select_query, create_app, generate_registration_number
 
 
@@ -32,6 +34,12 @@ class MemberSchemaCompatibilityTests(unittest.TestCase):
     def test_generate_registration_number_follows_kkshg_sequence(self):
         self.assertEqual(generate_registration_number([]), "KKSHG1")
         self.assertEqual(generate_registration_number([{"reg": "KKSHG1"}, {"reg": "KKSHG2"}]), "KKSHG3")
+
+    def test_get_mysql_connection_returns_tuple_shape_on_failure(self):
+        with patch("app.mysql.connector.connect", side_effect=Error("boom")):
+            conn, error = __import__("app")._get_mysql_connection()
+        self.assertIsNone(conn)
+        self.assertEqual(error, "boom")
 
     def test_create_member_inserts_into_name_when_full_name_is_generated(self):
         class FakeCursor:
