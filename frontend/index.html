@@ -1,0 +1,561 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalapatan · Group Loan & Savings</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- jsPDF autoTable for tables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ========== LOGIN PAGE ========== -->
+<div id="loginContainer" class="login-container">
+  <img src="assets/kalapatan logo.PNG" alt="Kalapatan Logo" class="login-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%230b2a3b%22/%3E%3Ctext x=%2250%22 y=%2265%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%23f6c445%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E'">
+  <div class="login-title">KALAPATAN</div>
+  <div class="login-sub">KONYANGO · SELF HELP</div>
+  <div class="form-row">
+    <label><i class="fas fa-user-lock"></i> Username</label>
+    <input type="text" id="loginUser" placeholder="chairman / secretary / treasurer" value="chairman">
+  </div>
+  <div class="form-row">
+    <label><i class="fas fa-key"></i> Password</label>
+    <input type="password" id="loginPass" placeholder="••••••••" value="34717215">
+  </div>
+  <button class="login-btn" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+  <div id="loginError" class="login-error" style="display:none;">Invalid credentials.</div>
+  <div class="login-footer">
+    <i class="fas fa-shield-alt"></i> Chairman (admin) · Secretary · Treasurer
+  </div>
+</div>
+
+<!-- ========== MAIN APPLICATION ========== -->
+<div id="appWrapper" class="app-wrapper">
+
+  <!-- HEADER with user & logout -->
+  <div class="logo-area">
+    <img src="assets/kalapatan logo.PNG" alt="Kalapatan Logo" class="logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect width=%2260%22 height=%2260%22 fill=%22%230b2a3b%22/%3E%3Ctext x=%2230%22 y=%2240%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23f6c445%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E'">
+    <div class="logo-text">
+      <span class="akalapatan">KALAPATAN</span>
+      <span class="konyango">KONYANGO</span>
+      <span class="self-help">SELF HELP GROUP</span>
+    </div>
+    <span class="sacco-tag"><i class="fas fa-hand-holding-usd"></i> GROUP LOAN</span>
+    <span class="user-badge" id="userBadge"><i class="fas fa-user-cog"></i> Chairman</span>
+    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-grid" id="summaryDisplay">
+    <div class="summary-item"><i class="fas fa-users"></i> <strong>Members</strong> <span class="value" id="totalMembers">12</span></div>
+    <div class="summary-item"><i class="fas fa-coins"></i> <strong>Registration Fees</strong> <span class="value" id="totalRegFees">Ksh 2,400</span></div>
+    <div class="summary-item"><i class="fas fa-ambulance"></i> <strong>Emergency</strong> <span class="value" id="totalEmergency">Ksh 2,250</span></div>
+    <div class="summary-item"><i class="fas fa-graduation-cap"></i> <strong>Education</strong> <span class="value" id="totalEducation">Ksh 300</span></div>
+    <div class="summary-item"><i class="fas fa-building"></i> <strong>Fixed deposit</strong> <span class="value" id="totalFixed">Ksh 0</span></div>
+    <div class="summary-item"><i class="fas fa-chart-line"></i> <strong>Development</strong> <span class="value" id="totalDevelopment">Ksh 0</span></div>
+    <div class="summary-item total-all"><i class="fas fa-circle-dollar"></i> <strong>ALL ACCOUNTS</strong> <span class="value" id="totalAll">Ksh 4,950</span></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="nav-tabs">
+    <button class="active" data-page="pageMembers"><i class="fas fa-list"></i> Members</button>
+    <button data-page="pageRegister"><i class="fas fa-user-plus"></i> Register</button>
+    <button data-page="pageLoan"><i class="fas fa-hand-holding-usd"></i> Loan</button>
+    <button data-page="pageRepayment"><i class="fas fa-coins"></i> Repay Loan</button>
+    <button data-page="pageLoanRepaymentReport"><i class="fas fa-file-pdf"></i> Loan Repayment Report</button>
+    <button data-page="pageLoanRepaymentStatement"><i class="fas fa-receipt"></i> Loan Statement</button>
+    <button data-page="pageWithdrawal"><i class="fas fa-money-bill-wave"></i> Withdrawal</button>
+    <button data-page="pageUpdate"><i class="fas fa-pen-to-square"></i> Update Accounts</button>
+    <button data-page="pageCharges"><i class="fas fa-percent"></i> Charges</button>
+    <button data-page="pageSavingsHistory"><i class="fas fa-chart-column"></i> Savings History</button>
+    <button data-page="pageBestSaver"><i class="fas fa-trophy"></i> Best Saver</button>
+    <button data-page="pageForms"><i class="fas fa-download"></i> Forms</button>
+    <!-- NEW TAB: ADMIN (only chairman) -->
+    <button data-page="pageAdmin" id="adminTabBtn" style="display:none;"><i class="fas fa-user-shield"></i> Admin</button>
+  </div>
+
+  <!-- PAGE: MEMBERS -->
+  <div id="pageMembers" class="page active-page">
+    <div class="card-panel" style="background:white; border:none; padding:0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem;">
+        <h3 style="margin-bottom:0.5rem;"><i class="fas fa-users"></i> Registered Members</h3>
+        <div class="report-buttons">
+          <button class="btn btn-success" id="exportCsvBtn"><i class="fas fa-file-csv"></i> CSV</button>
+          <button class="btn btn-purple" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="memberTable">
+          <thead><tr>
+            <th>#</th><th style="text-align:left;">Name</th><th>Reg. Number</th>
+            <th>Reg Fee</th><th>Emergency A/c</th><th>Education A/c</th><th>Development A/c</th><th>Fixed Deposit A/c</th><th>Total Savings</th>
+            <th>Loan Balance</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="memberTableBody"></tbody>
+        </table>
+      </div>
+      <div class="loan-history">
+        <i class="fas fa-clock-rotate-left"></i> <strong>Loan ledger:</strong> Interest 10% p.m. on outstanding balance. Penalty (1% on principal) applies only on default.
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: REGISTER -->
+  <div id="pageRegister" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-user-plus"></i> Register New Member</h3>
+      <div class="form-row">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" id="memberName" placeholder="e.g. Jane Akinyi" value="Grace Akoth">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-hashtag"></i> Registration Number</label>
+        <input type="text" id="memberReg" placeholder="Leave blank for auto KKSHG1, KKSHG2..." value="">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-coins"></i> Reg Fee (Ksh)</label>
+        <input type="number" id="memberRegFee" value="200" min="0" step="50">
+      </div>
+      <div class="flex">
+        <button class="btn btn-success" id="registerMemberBtn"><i class="fas fa-save"></i> Register</button>
+        <button class="btn btn-danger" id="resetMembersBtn" type="button"><i class="fas fa-broom"></i> Clear All Members</button>
+        <span id="regFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: LOAN -->
+  <div id="pageLoan" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-hand-holding-usd"></i> Apply Loan</h3>
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select Member</label>
+        <select id="loanMemberSelect"></select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-sack-dollar"></i> Principal (Ksh)</label>
+        <input type="number" id="loanPrincipal" value="5000" min="100" step="100">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-percent"></i> Interest Rate (%)</label>
+        <input type="number" id="loanInterestRate" value="10" min="0" max="100" step="0.1">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-calendar-alt"></i> Duration (months)</label>
+        <input type="number" id="loanMonths" value="3" min="1" max="24">
+      </div>
+      <div class="flex">
+        <button class="btn" id="applyLoanBtn"><i class="fas fa-calculator"></i> Apply Loan</button>
+        <span id="loanFeedback" class="feedback-badge" style="background:#ddf0e5; color:#1a6e4a;"><i class="fas fa-info-circle"></i> Enter your preferred interest rate · penalty on default</span>
+      </div>
+      <div id="loanCalculationPreview" style="margin-top:1rem; background:#e8f0f7; padding:0.5rem 1.2rem; border-radius:40px; font-size:0.9rem;">
+        <i class="fas fa-chart-simple"></i> Interest preview updates from the selected rate · Penalty (1%) only if defaulted
+      </div>
+    </div>
+    <div class="card-panel" style="background:#fafcff;">
+      <h4 style="display:flex; gap:0.6rem; color:#003153;"><i class="fas fa-triangle-exclamation" style="color:#d97706;"></i> Default & Penalty</h4>
+      <p style="color:#1f4b63; margin-bottom:0.5rem;">If a member defaults, a <strong>1% penalty</strong> on the principal is applied.</p>
+      <div class="flex">
+        <select id="defaultMemberSelect" style="padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3; background:white; flex:1; min-width:180px;"></select>
+        <button class="btn btn-warning" id="applyDefaultBtn"><i class="fas fa-clock"></i> Mark as Default (add 1% penalty)</button>
+      </div>
+      <span id="defaultFeedback" class="feedback-badge" style="margin-top:0.5rem; background:#fef3c7; color:#92400e;">Penalty will be added to loan balance</span>
+    </div>
+    <div class="card-panel" style="background:#fafcff;">
+      <h4 style="display:flex; gap:0.6rem; color:#003153;"><i class="fas fa-history" style="color:#1f4b63;"></i> Admin Loan History Reset</h4>
+      <p style="color:#1f4b63; margin-bottom:0.5rem;">Clear a member's stored loan ledger so their member report no longer includes previous loan history.</p>
+      <div class="flex">
+        <select id="loanHistoryResetMemberSelect" style="padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3; background:white; flex:1; min-width:220px;"></select>
+        <button class="btn btn-danger" id="resetSelectedMemberLoanHistoryBtn" type="button"><i class="fas fa-user-slash"></i> Clear Selected Member Loan History</button>
+      </div>
+      <span id="loanHistoryResetFeedback" class="feedback-badge" style="margin-top:0.5rem; background:#e1f3e8; color:#1a6e4a;">Ready</span>
+    </div>
+  </div>
+
+  <!-- PAGE: REPAYMENT -->
+  <div id="pageRepayment" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-coins"></i> Repay Loan</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;">Make a loan repayment to reduce your outstanding loan balance.</p>
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select Member</label>
+        <select id="repayMemberSelect"></select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-info-circle"></i> Current Loan Balance</label>
+        <input type="text" id="currentLoanDisplay" readonly style="background:#f0f6fb; color:#1d4a63;">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-sack-dollar"></i> Repayment Amount (Ksh)</label>
+        <input type="number" id="repaymentAmount" value="0" min="0" step="100" placeholder="Amount to repay">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-calendar-day"></i> Payment Date</label>
+        <input type="date" id="repaymentDate">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-clock"></i> Payment Time</label>
+        <input type="time" id="repaymentTime">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-pen"></i> Notes (Optional)</label>
+        <input type="text" id="repaymentNotes" placeholder="e.g. Monthly payment, partial settlement">
+      </div>
+      <div class="flex">
+        <button class="btn btn-success" id="repayLoanBtn"><i class="fas fa-check"></i> Confirm Repayment</button>
+        <button class="btn btn-info" id="viewRepaymentHistoryBtn"><i class="fas fa-history"></i> View History</button>
+        <button class="btn btn-danger" id="resetRepaymentHistoryBtn" type="button"><i class="fas fa-broom"></i> Reset History</button>
+        <span id="repayFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+      <!-- Repayment History Section -->
+      <div id="memberRepaymentHistory" style="margin-top:1.5rem; padding-top:1.5rem; border-top:2px solid #dde7f1; display:none;">
+        <h4><i class="fas fa-history"></i> Repayment History</h4>
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f0f6fb; border-bottom:2px solid #1f4b63;">
+              <th style="padding:0.7rem; text-align:left; color:#1f4b63;">Date</th>
+              <th style="padding:0.7rem; text-align:left; color:#1f4b63;">Amount</th>
+              <th style="padding:0.7rem; text-align:left; color:#1f4b63;">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="memberRepaymentHistoryTable" style="border-bottom:1px solid #dde7f1;">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: LOAN REPAYMENT REPORT -->
+  <div id="pageLoanRepaymentReport" class="page">
+    <div class="card-panel" style="background:#fafcff;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <h3 style="margin:0 0 0.25rem 0;"><i class="fas fa-file-pdf"></i> Loan Repayment Report</h3>
+          <p style="color:#1f4b63; margin:0;">Save the weekly best loan repayer report as a PDF. Use the refresh action to clear the history and start a new repayment report from a clean slate.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+          <button class="btn btn-success" id="exportLoanRepaymentReportBtn" type="button"><i class="fas fa-file-pdf"></i> Save PDF</button>
+          <button class="btn btn-danger" id="resetLoanRepaymentReportBtn" type="button"><i class="fas fa-broom"></i> Refresh Loan History</button>
+        </div>
+      </div>
+      <span id="loanRepaymentReportFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a; margin-bottom:0.8rem; display:inline-block;">Ready</span>
+      <div id="loanRepaymentReportLeaderboard"></div>
+      <div id="loanRepaymentReportHistory" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: INDIVIDUAL LOAN REPAYMENT STATEMENT -->
+  <div id="pageLoanRepaymentStatement" class="page">
+    <div class="card-panel" style="background:#fafcff;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <h3 style="margin:0 0 0.25rem 0;"><i class="fas fa-receipt"></i> Loan Repayment Statement</h3>
+          <p style="color:#1f4b63; margin:0;">Generate and view individual loan statements with repayment history.</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select Member</label>
+        <select id="statementMemberSelect"></select>
+      </div>
+      <div class="flex">
+        <button class="btn btn-success" id="generateStatementBtn"><i class="fas fa-file-pdf"></i> Generate Statement PDF</button>
+        <button class="btn btn-info" id="viewStatementBtn"><i class="fas fa-eye"></i> View Statement</button>
+        <button class="btn btn-danger" id="resetStatementBtn"><i class="fas fa-broom"></i> Reset</button>
+      </div>
+      <span id="statementFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a; margin-top:0.8rem; display:inline-block;">Ready</span>
+      <div id="loanStatementDisplay" style="margin-top:1.5rem; display:none; padding:1rem; background:#fff; border:1px solid #dde7f1; border-radius:8px;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: WITHDRAWAL -->
+  <div id="pageWithdrawal" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-money-bill-wave"></i> Request Withdrawal</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;">Request to withdraw funds from any savings account.</p>
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select Member</label>
+        <select id="withdrawMemberSelect"></select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-wallet"></i> Select Account</label>
+        <select id="withdrawAccountSelect">
+          <option value="emergency">Emergency Fund</option>
+          <option value="education">Education Fund</option>
+          <option value="development">Development Fund</option>
+          <option value="fixedDeposit">Fixed Deposit</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-info-circle"></i> Available Balance</label>
+        <input type="text" id="availableBalanceDisplay" readonly style="background:#f0f6fb; color:#1d4a63;">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-money-bill"></i> Withdrawal Amount (Ksh)</label>
+        <input type="number" id="withdrawalAmount" value="0" min="0" step="100" placeholder="Amount to withdraw">
+      </div>
+      <div class="flex">
+        <button class="btn btn-info" id="requestWithdrawalBtn"><i class="fas fa-arrow-down"></i> Request Withdrawal</button>
+        <button class="btn btn-success" id="exportWithdrawalStatementBtn" type="button"><i class="fas fa-file-pdf"></i> Export PDF</button>
+        <button class="btn btn-danger" id="resetWithdrawalHistoryBtn" type="button"><i class="fas fa-broom"></i> Reset Statement</button>
+        <span id="withdrawalFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+        <span id="withdrawalPdfFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+      <div style="margin-top:1.8rem; background:#f7fbff; padding:1rem 1.2rem; border-radius:24px; border:1px solid #dce8f0;">
+        <h4 style="color:#0b2a3b; margin-bottom:0.6rem;"><i class="fas fa-history"></i> Withdrawal Statement History</h4>
+        <div id="withdrawalHistory" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: CHARGES -->
+  <div id="pageCharges" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-percent"></i> Charges Management</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;"><i class="fas fa-lock"></i> <strong>Treasurer Only:</strong> Add charges such as transaction fees, penalties, or other fees to member accounts.</p>
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select Member</label>
+        <select id="chargeMemberSelect"></select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-tag"></i> Charge Type</label>
+        <select id="chargeType">
+          <option value="transaction">Transaction Charge</option>
+          <option value="penalty">Penalty</option>
+          <option value="maintenance">Maintenance Fee</option>
+          <option value="other">Other Charge</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-sack-dollar"></i> Amount (Ksh)</label>
+        <input type="number" id="chargeAmount" value="0" min="0" step="50" placeholder="Charge amount">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-note-sticky"></i> Description</label>
+        <input type="text" id="chargeDescription" placeholder="e.g. Late payment fee, Transaction fee, etc.">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-wallet"></i> Deduct From</label>
+        <select id="chargeDeductFrom">
+          <option value="emergency">Emergency Fund</option>
+          <option value="education">Education Fund</option>
+          <option value="development">Development Fund</option>
+          <option value="loan">Add to Loan Balance</option>
+        </select>
+      </div>
+      <div class="flex">
+        <button class="btn btn-warning" id="applyChargeBtn"><i class="fas fa-plus-circle"></i> Apply Charge</button>
+        <span id="chargeFeedback" class="feedback-badge" style="background:#fef3c7; color:#92400e;">Ready</span>
+      </div>
+      <div style="margin-top:2rem; background:#fef3e8; padding:1rem 1.2rem; border-radius:40px; border:1px solid #fcd34d;">
+        <h4 style="color:#92400e; margin-bottom:0.5rem;"><i class="fas fa-history"></i> Recent Charges</h4>
+        <div id="chargesHistory" style="max-height:200px; overflow-y:auto; font-size:0.85rem;">
+          <p style="color:#8aa1b5;">No charges recorded yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: SAVINGS HISTORY -->
+  <div id="pageSavingsHistory" class="page">
+    <div class="card-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <h3><i class="fas fa-chart-column"></i> Savings History Dashboard</h3>
+          <p style="color:#1f4b63; margin-bottom:0;">Daily, weekly, monthly, and annual member savings totals are kept here for the group.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+          <select id="historyResetMemberSelect" style="padding:0.55rem 1rem; border-radius:40px; border:1px solid #bdd3e3; background:white; min-width:220px;"></select>
+          <button class="btn btn-danger" id="resetSavingsHistoryBtn" type="button"><i class="fas fa-broom"></i> Reset All Members</button>
+          <button class="btn btn-warning" id="resetSelectedMemberHistoryBtn" type="button"><i class="fas fa-user-slash"></i> Reset Selected Member</button>
+          <span id="historyDashboardFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+        </div>
+      </div>
+      <div id="savingsHistoryDashboard" style="display:flex; flex-direction:column; gap:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: BEST SAVER -->
+  <div id="pageBestSaver" class="page">
+    <div class="card-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <h3><i class="fas fa-trophy"></i> Best Saver Recognition</h3>
+          <p style="color:#1f4b63; margin-bottom:0;">Weekly, monthly, and yearly recognition is ranked by the number of successful savings entries of KSh 100 and above — not by total saved amount.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+          <select id="bestSaverResetMemberSelect" style="padding:0.55rem 1rem; border-radius:40px; border:1px solid #bdd3e3; background:white; min-width:220px;"></select>
+          <select id="bestSaverReportPeriodSelect" style="padding:0.55rem 1rem; border-radius:40px; border:1px solid #bdd3e3; background:white; min-width:180px;">
+            <option value="week">Weekly</option>
+            <option value="month" selected>Monthly</option>
+            <option value="year">Yearly</option>
+          </select>
+          <button class="btn btn-danger" id="resetBestSaverGroupBtn" type="button"><i class="fas fa-broom"></i> Reset All Members</button>
+          <button class="btn btn-warning" id="resetBestSaverMemberBtn" type="button"><i class="fas fa-user-slash"></i> Reset Selected Member</button>
+          <button class="btn btn-success" id="exportBestSaverReportBtn" type="button"><i class="fas fa-file-pdf"></i> Generate Report</button>
+        </div>
+      </div>
+      <span id="bestSaverFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a; margin-bottom:0.8rem; display:inline-block;">Ready</span>
+      <div id="bestSaverLeaderboard" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;"></div>
+      <div id="bestSaverReportHistory" style="margin-top:1rem; display:flex; flex-direction:column; gap:0.75rem;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: UPDATE ACCOUNTS -->
+  <div id="pageUpdate" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-pen-to-square"></i> Update Member Accounts</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;">Add funds to a member's Emergency, Education, or Development savings account.</p>
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select Member</label>
+        <select id="updateMemberSelect"></select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-ambulance"></i> Emergency A/c</label>
+        <input type="number" id="updateEmergency" value="0" min="0" step="100" placeholder="Amount to add">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-graduation-cap"></i> Education A/c</label>
+        <input type="number" id="updateEducation" value="0" min="0" step="100" placeholder="Amount to add">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-chart-line"></i> Development A/c</label>
+        <input type="number" id="updateDevelopment" value="0" min="0" step="100" placeholder="Amount to add">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-building"></i> Fixed Deposit A/c</label>
+        <input type="number" id="updateFixedDeposit" value="0" min="0" step="100" placeholder="Amount to add">
+      </div>
+      <div class="flex">
+        <button class="btn btn-info" id="updateAccountsBtn"><i class="fas fa-arrow-up"></i> Update Accounts</button>
+        <span id="updateFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PAGE: ADMIN (Chairman only) ========== -->
+  <div id="pageAdmin" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-user-shield"></i> Admin · Password Management</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;"><i class="fas fa-lock"></i> <strong>Chairman only:</strong> Change passwords for chairman, secretary, and treasurer.</p>
+      
+      <div class="form-row">
+        <label><i class="fas fa-user-tie"></i> Select User</label>
+        <select id="adminUserSelect" style="padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3; background:white; flex:1; min-width:180px;">
+          <option value="chairman">Chairman</option>
+          <option value="secretary">Secretary</option>
+          <option value="treasurer">Treasurer</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-key"></i> New Password</label>
+        <input type="text" id="adminNewPassword" placeholder="Enter new password" value="newpass123">
+      </div>
+      <div class="flex">
+        <button class="btn btn-danger" id="adminChangePasswordBtn"><i class="fas fa-save"></i> Change Password</button>
+        <span id="adminFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+      <div style="margin-top:1.5rem; background:#e8f0f7; padding:0.8rem 1.2rem; border-radius:40px; font-size:0.9rem;">
+        <i class="fas fa-info-circle"></i> Current passwords: chairman/34717215, secretary/34717215, treasurer/34717215
+      </div>
+    </div>
+
+    <div class="card-panel" style="margin-top:1.5rem;">
+      <h3><i class="fas fa-file-import"></i> Form Library Upload</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;"><i class="fas fa-upload"></i> Upload a form, give it a clear name, and keep it ready for download by members and staff.</p>
+
+      <div class="form-row">
+        <label><i class="fas fa-file-signature"></i> Form Name</label>
+        <input type="text" id="adminFormName" placeholder="e.g. Member Registration Form" value="Member Registration Form">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-paperclip"></i> Choose File</label>
+        <input type="file" id="adminFormUpload" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.xlsx,.csv,.txt">
+      </div>
+      <div class="flex">
+        <button class="btn btn-success" id="adminUploadFormBtn"><i class="fas fa-upload"></i> Upload & Save Form</button>
+        <span id="adminFormUploadFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+      <div id="adminUploadedFormList" class="form-library-list"></div>
+    </div>
+  </div>
+
+  <!-- ========== PAGE: FORMS ========== -->
+  <div id="pageForms" class="page">
+    <div class="card-panel">
+      <h3><i class="fas fa-upload"></i> Upload & Download Forms</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;"><i class="fas fa-user-shield"></i> Chairman only: name a form, upload the file, then use the download list below.</p>
+
+      <div class="form-row">
+        <label><i class="fas fa-file-signature"></i> Form Name</label>
+        <input type="text" id="formsPageFormName" placeholder="e.g. Duty Roster Form" value="Duty Roster Form">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-paperclip"></i> Choose File</label>
+        <input type="file" id="formsPageFormUpload" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.xlsx,.csv,.txt">
+      </div>
+      <div class="flex">
+        <button class="btn btn-success" id="formsPageUploadBtn" type="button"><i class="fas fa-upload"></i> Upload & Save Form</button>
+        <span id="formsPageUploadFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a;">Ready</span>
+      </div>
+    </div>
+
+    <div class="card-panel" style="margin-top:1.5rem;">
+      <h3><i class="fas fa-download"></i> Download Forms</h3>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;">Use the buttons below to download the latest uploaded forms.</p>
+      <div id="downloadableFormList" class="form-library-list"></div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div id="editModal">
+    <div>
+      <h2 style="color:#0b2a3b; margin-bottom:1.5rem; display:flex; align-items:center; gap:0.5rem;"><i class="fas fa-edit"></i> Edit Member</h2>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" id="editName" style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3;">
+      </div>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-hashtag"></i> Registration Number</label>
+        <input type="text" id="editReg" readonly style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3; background:#f0f6fb; color:#888;">
+      </div>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-coins"></i> Registration Fee (Ksh)</label>
+        <input type="number" id="editRegFee" style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3;">
+      </div>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-ambulance"></i> Emergency Fund (Ksh)</label>
+        <input type="number" id="editEmergency" style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3;">
+      </div>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-graduation-cap"></i> Education Fund (Ksh)</label>
+        <input type="number" id="editEducation" style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3;">
+      </div>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-chart-line"></i> Development Fund (Ksh)</label>
+        <input type="number" id="editDevelopment" style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3;">
+      </div>
+      <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+        <label><i class="fas fa-building"></i> Fixed Deposit (Ksh)</label>
+        <input type="number" id="editFixedDeposit" style="width:100%; padding:0.55rem 1.2rem; border-radius:40px; border:1px solid #bdd3e3;">
+      </div>
+      <div class="form-row" style="margin-top:1.5rem; gap:0.8rem; justify-content:flex-end;">
+        <button class="btn" onclick="closeEditModal()" style="background:#888;"><i class="fas fa-times"></i> Cancel</button>
+        <button class="btn btn-success" onclick="saveMemberEdit()"><i class="fas fa-save"></i> Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <span><i class="fas fa-flag-checkered"></i> Kalapatan · Konyango Self Help Group</span>
+    <span><i class="fas fa-database"></i> Group Target: Ksh2,000,000</span>
+  </div>
+</div>
+  <script src="js/app.js"></script>
+</body>
+</html>
+

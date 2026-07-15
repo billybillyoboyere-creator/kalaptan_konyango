@@ -1,0 +1,2 @@
+Sample form upload for Kalapatan admin testing.
+This file can be uploaded through the new Forms page.
