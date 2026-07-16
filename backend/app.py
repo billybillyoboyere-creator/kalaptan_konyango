@@ -119,7 +119,16 @@ def build_mysql_config():
             host = parsed.hostname
             port = parsed.port or 3306
             user = parsed.username or os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root"
-            password = parsed.password or os.environ.get("MYSQLPASSWORD") or os.environ.get("MYSQL_PASSWORD") or ""
+            password = (
+                parsed.password
+                or os.environ.get("MYSQLPASSWORD")
+                or os.environ.get("MYSQL_PASSWORD")
+                or os.environ.get("MYSQL_ROOT_PASSWORD")
+                or os.environ.get("MYSQLROOTPASSWORD")
+                or os.environ.get("MYSQL_ROOT_PASS")
+                or os.environ.get("MYSQL_ROOT_PASSWD")
+                or ""
+            )
             database = parsed.path.lstrip("/") or os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db"
             return {
                 "host": host,
@@ -130,12 +139,25 @@ def build_mysql_config():
                 "autocommit": False,
             }
 
+    host = os.environ.get("MYSQLHOST") or os.environ.get("MYSQL_HOST") or "127.0.0.1"
+    port = int(os.environ.get("MYSQLPORT") or os.environ.get("MYSQL_PORT") or "3306")
+    user = os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root"
+    password = (
+        os.environ.get("MYSQLPASSWORD")
+        or os.environ.get("MYSQL_PASSWORD")
+        or os.environ.get("MYSQL_ROOT_PASSWORD")
+        or os.environ.get("MYSQLROOTPASSWORD")
+        or os.environ.get("MYSQL_ROOT_PASS")
+        or os.environ.get("MYSQL_ROOT_PASSWD")
+        or "34717215"
+    )
+    database = os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db"
     return {
-        "host": os.environ.get("MYSQLHOST") or os.environ.get("MYSQL_HOST") or "127.0.0.1",
-        "port": int(os.environ.get("MYSQLPORT") or os.environ.get("MYSQL_PORT") or "3306"),
-        "user": os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root",
-        "password": os.environ.get("MYSQLPASSWORD") or os.environ.get("MYSQL_PASSWORD") or "34717215",
-        "database": os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db",
+        "host": host,
+        "port": port,
+        "user": user,
+        "password": password,
+        "database": database,
         "autocommit": False,
     }
 
@@ -303,6 +325,12 @@ def create_app():
     def handle_not_found(error):
         if request.path.startswith("/api/"):
             return jsonify({"error": "Not found", "path": request.path}), 404
+        return app.send_static_file("index.html")
+
+    @app.errorhandler(RuntimeError)
+    def handle_runtime_error(error):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": str(error), "type": "database_unavailable"}), 503
         return app.send_static_file("index.html")
 
     def get_connection():

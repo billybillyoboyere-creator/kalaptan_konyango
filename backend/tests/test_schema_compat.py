@@ -44,6 +44,20 @@ class MemberSchemaCompatibilityTests(unittest.TestCase):
         self.assertEqual(config["password"], "secret")
         self.assertEqual(config["database"], "kalaptan_dp")
 
+    def test_build_mysql_config_uses_root_password_fallback(self):
+        with patch.dict(os.environ, {
+            "MYSQLHOST": "mysql.railway.internal",
+            "MYSQLPORT": "3306",
+            "MYSQLUSER": "root",
+            "MYSQL_ROOT_PASSWORD": "root-secret",
+            "MYSQL_DATABASE": "kalaptan_dp",
+        }, clear=False):
+            config = build_mysql_config()
+        self.assertEqual(config["host"], "mysql.railway.internal")
+        self.assertEqual(config["user"], "root")
+        self.assertEqual(config["password"], "root-secret")
+        self.assertEqual(config["database"], "kalaptan_dp")
+
     def test_get_mysql_connection_returns_tuple_shape_on_failure(self):
         with patch("app.mysql.connector.connect", side_effect=Error("boom")):
             conn, error = __import__("app")._get_mysql_connection()
