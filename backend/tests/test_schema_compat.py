@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from mysql.connector import Error
 
-from app import build_member_insert_query, build_member_select_query, create_app, generate_registration_number
+from app import build_member_insert_query, build_member_select_query, build_mysql_config, create_app, generate_registration_number
 
 
 class MemberSchemaCompatibilityTests(unittest.TestCase):
@@ -34,6 +34,15 @@ class MemberSchemaCompatibilityTests(unittest.TestCase):
     def test_generate_registration_number_follows_kkshg_sequence(self):
         self.assertEqual(generate_registration_number([]), "KKSHG1")
         self.assertEqual(generate_registration_number([{"reg": "KKSHG1"}, {"reg": "KKSHG2"}]), "KKSHG3")
+
+    def test_build_mysql_config_parses_railway_mysql_url(self):
+        with patch.dict(os.environ, {"MYSQL_URL": "mysql://root:secret@mysql.railway.internal:3306/kalaptan_dp"}, clear=False):
+            config = build_mysql_config()
+        self.assertEqual(config["host"], "mysql.railway.internal")
+        self.assertEqual(config["port"], 3306)
+        self.assertEqual(config["user"], "root")
+        self.assertEqual(config["password"], "secret")
+        self.assertEqual(config["database"], "kalaptan_dp")
 
     def test_get_mysql_connection_returns_tuple_shape_on_failure(self):
         with patch("app.mysql.connector.connect", side_effect=Error("boom")):

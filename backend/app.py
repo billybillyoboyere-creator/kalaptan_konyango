@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 import mysql.connector
 from flask import Flask, jsonify, request
@@ -108,14 +109,38 @@ def build_member_insert_query(columns=None, data=None):
 
 BASE_DIR = Path(__file__).resolve().parent
 SCHEMA_PATH = BASE_DIR.parent / "database" / "schema.sql"
-MYSQL_CONFIG = {
-    "host": os.environ.get("MYSQLHOST") or os.environ.get("MYSQL_HOST") or "127.0.0.1",
-    "port": int(os.environ.get("MYSQLPORT") or os.environ.get("MYSQL_PORT") or "3306"),
-    "user": os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root",
-    "password": os.environ.get("MYSQLPASSWORD") or os.environ.get("MYSQL_PASSWORD") or "34717215",
-    "database": os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db",
-    "autocommit": False,
-}
+
+
+def build_mysql_config():
+    mysql_url = os.environ.get("MYSQL_URL") or os.environ.get("MYSQLPUBLICURL") or os.environ.get("MYSQL_PUBLIC_URL")
+    if mysql_url:
+        parsed = urlparse(mysql_url)
+        if parsed.hostname:
+            host = parsed.hostname
+            port = parsed.port or 3306
+            user = parsed.username or os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root"
+            password = parsed.password or os.environ.get("MYSQLPASSWORD") or os.environ.get("MYSQL_PASSWORD") or ""
+            database = parsed.path.lstrip("/") or os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db"
+            return {
+                "host": host,
+                "port": port,
+                "user": user,
+                "password": password,
+                "database": database,
+                "autocommit": False,
+            }
+
+    return {
+        "host": os.environ.get("MYSQLHOST") or os.environ.get("MYSQL_HOST") or "127.0.0.1",
+        "port": int(os.environ.get("MYSQLPORT") or os.environ.get("MYSQL_PORT") or "3306"),
+        "user": os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root",
+        "password": os.environ.get("MYSQLPASSWORD") or os.environ.get("MYSQL_PASSWORD") or "34717215",
+        "database": os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db",
+        "autocommit": False,
+    }
+
+
+MYSQL_CONFIG = build_mysql_config()
 
 
 def _get_mysql_connection():
