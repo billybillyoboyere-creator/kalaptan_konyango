@@ -1,13 +1,16 @@
+import hashlib
+import hmac
 import os
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import mysql.connector
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from mysql.connector import Error
+from dotenv import load_dotenv
 import time
 
 
@@ -110,6 +113,10 @@ def build_member_insert_query(columns=None, data=None):
 BASE_DIR = Path(__file__).resolve().parent
 SCHEMA_PATH = BASE_DIR.parent / "database" / "schema.sql"
 
+# Local development settings live in the project-level .env file. Environment
+# variables supplied by Railway or another host still take precedence.
+load_dotenv(BASE_DIR.parent / ".env")
+
 
 def build_mysql_config():
     mysql_url = os.environ.get("MYSQL_URL") or os.environ.get("MYSQLPUBLICURL") or os.environ.get("MYSQL_PUBLIC_URL")
@@ -118,9 +125,9 @@ def build_mysql_config():
         if parsed.hostname:
             host = parsed.hostname
             port = parsed.port or 3306
-            user = parsed.username or os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root"
+            user = unquote(parsed.username) if parsed.username else (os.environ.get("MYSQLUSER") or os.environ.get("MYSQL_USER") or "root")
             password = (
-                parsed.password
+                unquote(parsed.password) if parsed.password else None
                 or os.environ.get("MYSQLPASSWORD")
                 or os.environ.get("MYSQL_PASSWORD")
                 or os.environ.get("MYSQL_ROOT_PASSWORD")
@@ -129,7 +136,7 @@ def build_mysql_config():
                 or os.environ.get("MYSQL_ROOT_PASSWD")
                 or ""
             )
-            database = parsed.path.lstrip("/") or os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db"
+            database = unquote(parsed.path.lstrip("/")) or os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db"
             return {
                 "host": host,
                 "port": port,
@@ -149,7 +156,7 @@ def build_mysql_config():
         or os.environ.get("MYSQLROOTPASSWORD")
         or os.environ.get("MYSQL_ROOT_PASS")
         or os.environ.get("MYSQL_ROOT_PASSWD")
-        or "34717215"
+        or ""
     )
     database = os.environ.get("MYSQLDATABASE") or os.environ.get("MYSQL_DATABASE") or "kalapatan_db"
     return {
@@ -316,6 +323,31 @@ def column_is_generated(conn, table_name, column_name):
         return False
 
 
+def generate_password_hash(password, salt=None):
+    password_text = str(password or "")
+    if salt is None:
+        salt = os.urandom(16).hex()
+    elif isinstance(salt, bytes):
+        salt = salt.hex()
+    elif not isinstance(salt, str):
+        salt = str(salt)
+    digest = hashlib.pbkdf2_hmac("sha256", password_text.encode("utf-8"), salt.encode("utf-8"), 200_000).hex()
+    return f"pbkdf2_sha256$200000${salt}${digest}"
+
+
+def verify_password(password, stored_hash):
+    if not stored_hash:
+        return False
+    if not stored_hash.startswith("pbkdf2_sha256$"):
+        return str(password or "") == str(stored_hash or "")
+    parts = stored_hash.split("$", 3)
+    if len(parts) != 4:
+        return False
+    _, iterations, salt, digest = parts
+    derived = hashlib.pbkdf2_hmac("sha256", str(password or "").encode("utf-8"), salt.encode("utf-8"), int(iterations)).hex()
+    return hmac.compare_digest(derived, digest)
+
+
 def create_app():
     frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
     app = Flask(__name__, static_folder=frontend_dir, static_url_path="")
@@ -340,7 +372,15 @@ def create_app():
         return conn
 
     def init_db():
-        conn, error = _get_mysql_connection()
+        # Connect without selecting the application database first. This lets a
+        # new local setup create kalapatan_db before loading its schema.
+        bootstrap_config = dict(MYSQL_CONFIG)
+        bootstrap_config.pop("database", None)
+        try:
+            conn = mysql.connector.connect(**bootstrap_config)
+            error = None
+        except Error as exc:
+            conn, error = None, str(exc)
         if conn is None:
             app.logger.warning("Database unavailable during init: %s", error)
             return False
@@ -584,6 +624,33 @@ def create_app():
                     cursor.execute("ALTER TABLE withdrawal_statements ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP")
                     withdrawal_columns.add("created_at")
 
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS auth_users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(80) NOT NULL UNIQUE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    role VARCHAR(30) NOT NULL DEFAULT 'member',
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+                """
+            )
+            cursor.execute("SELECT COUNT(*) AS user_count FROM auth_users")
+            user_count_row = cursor.fetchone()
+            user_count = int(user_count_row[0] if user_count_row and hasattr(user_count_row, "__getitem__") else 0)
+            if user_count == 0:
+                default_users = [
+                    ("chairman", "34717215", "Chairman"),
+                    ("secretary", "34717215", "Secretary"),
+                    ("treasurer", "34717215", "Treasurer"),
+                ]
+                for username, password, role in default_users:
+                    cursor.execute(
+                        "INSERT INTO auth_users (username, password_hash, role) VALUES (%s, %s, %s)",
+                        (username, generate_password_hash(password), role),
+                    )
+
             conn.commit()
             return True
         except Error as exc:
@@ -608,6 +675,57 @@ def create_app():
             db_state = "ready"
             conn.close()
         return jsonify({"status": "ok", "service": "kalapatan-api", "database": MYSQL_CONFIG["database"], "database_state": db_state, "database_error": error if error else None})
+
+    @app.post("/api/login")
+    def login():
+        data = request.get_json(silent=True) or {}
+        username = str(data.get("username") or data.get("user") or "").strip().lower()
+        password = str(data.get("password") or "").strip()
+
+        if not username or not password:
+            return jsonify({"error": "username and password are required"}), 400
+
+        try:
+            with get_connection() as conn:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute(
+                    "SELECT id, username, password_hash, role FROM auth_users WHERE username = %s LIMIT 1",
+                    (username,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    return jsonify({"error": "Invalid username or password"}), 401
+
+                if not verify_password(password, row.get("password_hash")):
+                    return jsonify({"error": "Invalid username or password"}), 401
+
+                return jsonify({"success": True, "user": row.get("username"), "role": row.get("role"), "id": row.get("id")})
+        except Error as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.post("/api/auth/password")
+    def update_user_password():
+        data = request.get_json(silent=True) or {}
+        username = str(data.get("username") or "").strip().lower()
+        password = str(data.get("password") or "").strip()
+
+        if not username or not password:
+            return jsonify({"error": "username and password are required"}), 400
+
+        try:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id FROM auth_users WHERE username = %s", (username,))
+                if cursor.fetchone() is None:
+                    return jsonify({"error": "User not found"}), 404
+                cursor.execute(
+                    "UPDATE auth_users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP WHERE username = %s",
+                    (generate_password_hash(password), username),
+                )
+                conn.commit()
+                return jsonify({"success": True, "user": username})
+        except Error as exc:
+            return jsonify({"error": str(exc)}), 500
 
     @app.get("/api/forms")
     def list_uploaded_forms():

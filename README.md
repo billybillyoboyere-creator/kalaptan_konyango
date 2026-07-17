@@ -23,16 +23,15 @@ cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-$env:MYSQL_HOST="localhost"
-$env:MYSQL_USER="root"
-$env:MYSQL_PASSWORD=""
-$env:MYSQL_DATABASE="kalapatan_db"
+Copy-Item .env.example .env
+# Set MYSQL_PASSWORD in .env to the password for your local MySQL user.
 python app.py
 ```
 
-## Create MySQL Database
+The backend creates `kalapatan_db` and its tables automatically on first start.
+The MySQL account in `.env` needs permission to create that database. If it
+does not, create the database once with an administrator account:
 
 ```powershell
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS kalapatan_db;"
-mysql -u root -p kalapatan_db < database/schema.sql
 ```

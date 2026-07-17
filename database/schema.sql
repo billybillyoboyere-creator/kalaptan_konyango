@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS members (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  full_name VARCHAR(120) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  full_name VARCHAR(120) GENERATED ALWAYS AS (name) STORED,
   phone VARCHAR(30),
   email VARCHAR(120),
   role VARCHAR(30) NOT NULL DEFAULT 'member',
@@ -107,4 +108,3 @@ CREATE TABLE IF NOT EXISTS withdrawal_statements (
     FOREIGN KEY (member_id) REFERENCES members(id)
     ON DELETE CASCADE
 );
-

@@ -7,6 +7,7 @@
     };
     let currentUser = null;
     let currentRole = '';
+    let currentPassword = '';
     const ADMIN_MEMBER_RESET_PASSWORD = '1234';
 
     const loginContainer = document.getElementById('loginContainer');
@@ -16,12 +17,26 @@
     const adminTabBtn = document.getElementById('adminTabBtn');
     const resetMembersBtn = document.getElementById('resetMembersBtn');
 
-    document.getElementById('loginBtn').addEventListener('click', function() {
+    document.getElementById('loginBtn').addEventListener('click', async function() {
       const username = document.getElementById('loginUser').value.trim().toLowerCase();
       const password = document.getElementById('loginPass').value.trim();
-      if (validUsers[username] && validUsers[username].password === password) {
-        currentUser = username;
-        currentRole = validUsers[username].role;
+
+      if (!username || !password) {
+        loginError.style.display = 'inline-block';
+        loginError.textContent = 'Please enter both username and password.';
+        return;
+      }
+
+      try {
+        const authResponse = await requestJson('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        currentUser = authResponse.user;
+        currentRole = authResponse.role;
+        currentPassword = password;
         loginContainer.style.display = 'none';
         appWrapper.classList.add('active-app');
         userBadge.innerHTML = `<i class="fas fa-user-cog"></i> ${currentRole}`;
@@ -68,9 +83,9 @@
         }
 
         renderAll();
-      } else {
+      } catch (error) {
         loginError.style.display = 'inline-block';
-        loginError.textContent = 'Invalid: Invalid credentials. Try chairman / 34717215';
+        loginError.textContent = error.message || 'Invalid credentials.';
       }
     });
 
@@ -79,8 +94,9 @@
       appWrapper.classList.remove('active-app');
       currentUser = null;
       currentRole = '';
-      document.getElementById('loginUser').value = 'chairman';
-      document.getElementById('loginPass').value = '34717215';
+      currentPassword = '';
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
       loginError.style.display = 'none';
       adminTabBtn.style.display = 'none';
       if (resetMembersBtn) resetMembersBtn.style.display = 'none';
@@ -99,7 +115,7 @@
     });
 
     // ---------- ADMIN: CHANGE PASSWORDS ----------
-    document.getElementById('adminChangePasswordBtn').addEventListener('click', function() {
+    document.getElementById('adminChangePasswordBtn').addEventListener('click', async function() {
       const userSelect = document.getElementById('adminUserSelect').value;
       const newPass = document.getElementById('adminNewPassword').value.trim();
       const fb = document.getElementById('adminFeedback');
@@ -108,13 +124,18 @@
         fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
         return;
       }
-      if (validUsers[userSelect]) {
+      try {
+        await requestJson('/api/auth/password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: userSelect, password: newPass })
+        });
         validUsers[userSelect].password = newPass;
-        fb.innerHTML = `<i class="fas fa-check-circle"></i> Success: Password for ${userSelect} changed to "${newPass}"`;
+        fb.innerHTML = `<i class="fas fa-check-circle"></i> Success: Password for ${userSelect} changed in the database.`;
         fb.style.background = '#ddf0e5'; fb.style.color = '#1a6e4a';
         document.getElementById('adminNewPassword').value = '';
-      } else {
-        fb.textContent = 'Warning: User not found.';
+      } catch (error) {
+        fb.textContent = error.message || 'Warning: Password update failed.';
         fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
       }
     });
@@ -451,7 +472,7 @@
         return false;
       }
 
-      if (String(enteredPassword) !== String(validUsers[currentUser].password)) {
+      if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser].password)) {
         if (feedbackEl) {
           feedbackEl.textContent = 'Reset blocked: incorrect admin login password.';
           feedbackEl.style.background = '#fde8e8';
