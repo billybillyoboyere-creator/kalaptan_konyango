@@ -240,7 +240,8 @@
         </div>
         <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
           <button class="btn btn-success" id="exportLoanRepaymentReportBtn" type="button"><i class="fas fa-file-pdf"></i> Save PDF</button>
-          <button class="btn btn-danger" id="resetLoanRepaymentReportBtn" type="button"><i class="fas fa-broom"></i> Refresh Loan History</button>
+          <button class="btn btn-danger" id="deleteLoanRepaymentRecordsBtn" type="button" style="display:none;"><i class="fas fa-trash-alt"></i> Delete Reports & Statements</button>
+          <button class="btn btn-danger" id="resetLoanRepaymentReportBtn" type="button" style="display:none;"><i class="fas fa-broom"></i> Refresh Loan History</button>
         </div>
       </div>
       <span id="loanRepaymentReportFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a; margin-bottom:0.8rem; display:inline-block;">Ready</span>
@@ -265,7 +266,7 @@
       <div class="flex">
         <button class="btn btn-success" id="generateStatementBtn"><i class="fas fa-file-pdf"></i> Generate Statement PDF</button>
         <button class="btn btn-info" id="viewStatementBtn"><i class="fas fa-eye"></i> View Statement</button>
-        <button class="btn btn-danger" id="resetStatementBtn"><i class="fas fa-broom"></i> Reset</button>
+        <button class="btn btn-danger" id="resetStatementBtn" style="display:none;"><i class="fas fa-broom"></i> Reset</button>
       </div>
       <span id="statementFeedback" class="feedback-badge" style="background:#e1f3e8; color:#1a6e4a; margin-top:0.8rem; display:inline-block;">Ready</span>
       <div id="loanStatementDisplay" style="margin-top:1.5rem; display:none; padding:1rem; background:#fff; border:1px solid #dde7f1; border-radius:8px;"></div>

@@ -8,7 +8,13 @@
     let currentUser = null;
     let currentRole = '';
     let currentPassword = '';
+    let csrfToken = null;
     const ADMIN_MEMBER_RESET_PASSWORD = '1234';
+
+    function isAdminRole(roleValue) {
+      const normalizedRole = String(roleValue || '').trim().toLowerCase();
+      return normalizedRole === 'chairman' || normalizedRole === 'admin';
+    }
 
     const loginContainer = document.getElementById('loginContainer');
     const appWrapper = document.getElementById('appWrapper');
@@ -42,7 +48,8 @@
         userBadge.innerHTML = `<i class="fas fa-user-cog"></i> ${currentRole}`;
         loginError.style.display = 'none';
 
-        if (currentRole === 'Chairman') {
+        const isAdmin = isAdminRole(currentRole);
+        if (isAdmin) {
           adminTabBtn.style.display = 'inline-flex';
           if (resetMembersBtn) resetMembersBtn.style.display = 'inline-flex';
           const resetHistoryBtn = document.getElementById('resetSavingsHistoryBtn');
@@ -53,6 +60,9 @@
           const bestSaverResetMemberSelect = document.getElementById('bestSaverResetMemberSelect');
           const resetSelectedMemberLoanHistoryBtn = document.getElementById('resetSelectedMemberLoanHistoryBtn');
           const loanHistoryResetMemberSelect = document.getElementById('loanHistoryResetMemberSelect');
+          const loanReportDeleteBtn = document.getElementById('deleteLoanRepaymentRecordsBtn');
+          const loanReportResetBtn = document.getElementById('resetLoanRepaymentReportBtn');
+          const statementResetBtn = document.getElementById('resetStatementBtn');
           if (resetHistoryBtn) resetHistoryBtn.style.display = 'inline-flex';
           if (resetSelectedMemberHistoryBtn) resetSelectedMemberHistoryBtn.style.display = 'inline-flex';
           if (historyResetMemberSelect) historyResetMemberSelect.style.display = 'inline-flex';
@@ -61,6 +71,9 @@
           if (bestSaverResetMemberSelect) bestSaverResetMemberSelect.style.display = 'inline-flex';
           if (resetSelectedMemberLoanHistoryBtn) resetSelectedMemberLoanHistoryBtn.style.display = 'inline-flex';
           if (loanHistoryResetMemberSelect) loanHistoryResetMemberSelect.style.display = 'inline-flex';
+          if (loanReportDeleteBtn) loanReportDeleteBtn.style.display = 'inline-flex';
+          if (loanReportResetBtn) loanReportResetBtn.style.display = 'inline-flex';
+          if (statementResetBtn) statementResetBtn.style.display = 'inline-flex';
         } else {
           adminTabBtn.style.display = 'none';
           if (resetMembersBtn) resetMembersBtn.style.display = 'none';
@@ -72,6 +85,9 @@
           const bestSaverResetMemberSelect = document.getElementById('bestSaverResetMemberSelect');
           const resetSelectedMemberLoanHistoryBtn = document.getElementById('resetSelectedMemberLoanHistoryBtn');
           const loanHistoryResetMemberSelect = document.getElementById('loanHistoryResetMemberSelect');
+          const loanReportDeleteBtn = document.getElementById('deleteLoanRepaymentRecordsBtn');
+          const loanReportResetBtn = document.getElementById('resetLoanRepaymentReportBtn');
+          const statementResetBtn = document.getElementById('resetStatementBtn');
           if (resetHistoryBtn) resetHistoryBtn.style.display = 'none';
           if (resetSelectedMemberHistoryBtn) resetSelectedMemberHistoryBtn.style.display = 'none';
           if (historyResetMemberSelect) historyResetMemberSelect.style.display = 'none';
@@ -80,6 +96,9 @@
           if (bestSaverResetMemberSelect) bestSaverResetMemberSelect.style.display = 'none';
           if (resetSelectedMemberLoanHistoryBtn) resetSelectedMemberLoanHistoryBtn.style.display = 'none';
           if (loanHistoryResetMemberSelect) loanHistoryResetMemberSelect.style.display = 'none';
+          if (loanReportDeleteBtn) loanReportDeleteBtn.style.display = 'none';
+          if (loanReportResetBtn) loanReportResetBtn.style.display = 'none';
+          if (statementResetBtn) statementResetBtn.style.display = 'none';
         }
 
         renderAll();
@@ -106,12 +125,18 @@
       const resetBestSaverGroupBtn = document.getElementById('resetBestSaverGroupBtn');
       const resetBestSaverMemberBtn = document.getElementById('resetBestSaverMemberBtn');
       const bestSaverResetMemberSelect = document.getElementById('bestSaverResetMemberSelect');
+      const loanReportDeleteBtn = document.getElementById('deleteLoanRepaymentRecordsBtn');
+      const loanReportResetBtn = document.getElementById('resetLoanRepaymentReportBtn');
+      const statementResetBtn = document.getElementById('resetStatementBtn');
       if (resetHistoryBtn) resetHistoryBtn.style.display = 'none';
       if (resetSelectedMemberHistoryBtn) resetSelectedMemberHistoryBtn.style.display = 'none';
       if (historyResetMemberSelect) historyResetMemberSelect.style.display = 'none';
       if (resetBestSaverGroupBtn) resetBestSaverGroupBtn.style.display = 'none';
       if (resetBestSaverMemberBtn) resetBestSaverMemberBtn.style.display = 'none';
       if (bestSaverResetMemberSelect) bestSaverResetMemberSelect.style.display = 'none';
+      if (loanReportDeleteBtn) loanReportDeleteBtn.style.display = 'none';
+      if (loanReportResetBtn) loanReportResetBtn.style.display = 'none';
+      if (statementResetBtn) statementResetBtn.style.display = 'none';
     });
 
     // ---------- ADMIN: CHANGE PASSWORDS ----------
@@ -408,6 +433,20 @@
       return `${prefix}${nextNumber}`;
     }
 
+    async function fetchCsrfToken() {
+      try {
+        const response = await fetch('/api/csrf-token', { method: 'GET', credentials: 'include' });
+        const payload = await response.json().catch(() => ({}));
+        if (payload?.csrfToken) {
+          csrfToken = payload.csrfToken;
+          return csrfToken;
+        }
+      } catch (error) {
+        console.warn('Unable to fetch CSRF token.', error);
+      }
+      return csrfToken;
+    }
+
     async function requestJson(path, options = {}) {
       const candidateUrls = [];
       if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -416,10 +455,27 @@
         candidateUrls.push(path, `http://127.0.0.1:5000${path}`);
       }
 
+      const requestMethod = String(options.method || 'GET').toUpperCase();
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod)) {
+        await fetchCsrfToken();
+      }
+
       let lastError = new Error('Unable to reach the API.');
       for (const url of candidateUrls) {
         try {
-          const response = await fetch(url, options);
+          const requestHeaders = new Headers(options.headers || {});
+          if (currentRole) {
+            requestHeaders.set('X-User-Role', currentRole);
+          }
+          if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod)) {
+            requestHeaders.set('X-CSRF-Token', csrfToken);
+          }
+          const requestOptions = {
+            ...options,
+            credentials: 'include',
+            headers: requestHeaders,
+          };
+          const response = await fetch(url, requestOptions);
           const text = await response.text();
           const trimmed = text.trim();
           const contentType = response.headers.get('content-type') || '';
@@ -458,7 +514,7 @@
     }
 
     function confirmAdminResetWithPassword(actionLabel, feedbackEl) {
-      if (currentRole !== 'Chairman' || !currentUser || !validUsers[currentUser]) {
+      if (!isAdminRole(currentRole) || !currentUser || !validUsers[currentUser]) {
         if (feedbackEl) {
           feedbackEl.textContent = 'Admin reset denied: only the chairman can use this reset action.';
           feedbackEl.style.background = '#fde8e8';
@@ -485,7 +541,7 @@
     }
 
     function confirmAdminMemberClearWithPassword(actionLabel, feedbackEl) {
-      if (currentRole !== 'Chairman' || !currentUser || !validUsers[currentUser]) {
+      if (!isAdminRole(currentRole) || !currentUser || !validUsers[currentUser]) {
         if (feedbackEl) {
           feedbackEl.textContent = 'Admin member clear denied: only the chairman can clear members.';
           feedbackEl.style.background = '#fde8e8';
@@ -591,25 +647,28 @@
     function normalizeBestSaverRankings(payload) {
       const empty = makeEmptyBestSaverRankings();
       if (!payload || typeof payload !== 'object') return empty;
+      const normalizePeriod = (rows) => {
+        if (!Array.isArray(rows)) return [];
+        return rows
+          .map((entry) => ({
+            memberId: entry?.memberId,
+            memberName: entry?.memberName || 'Unknown Member',
+            savingsCount: Number(entry?.savingsCount || 0),
+            qualifyingAmount: Number(entry?.qualifyingAmount || 0)
+          }))
+          .filter((entry) => Number(entry.savingsCount || 0) > 0)
+          .sort((left, right) => {
+            const countDiff = Number(right.savingsCount || 0) - Number(left.savingsCount || 0);
+            if (countDiff !== 0) return countDiff;
+            const amountDiff = Number(right.qualifyingAmount || 0) - Number(left.qualifyingAmount || 0);
+            if (amountDiff !== 0) return amountDiff;
+            return String(left.memberName || '').localeCompare(String(right.memberName || ''));
+          });
+      };
       return {
-        week: Array.isArray(payload.week) ? payload.week.map((entry) => ({
-          memberId: entry?.memberId,
-          memberName: entry?.memberName || 'Unknown Member',
-          savingsCount: Number(entry?.savingsCount || 0),
-          qualifyingAmount: Number(entry?.qualifyingAmount || 0)
-        })) : [],
-        month: Array.isArray(payload.month) ? payload.month.map((entry) => ({
-          memberId: entry?.memberId,
-          memberName: entry?.memberName || 'Unknown Member',
-          savingsCount: Number(entry?.savingsCount || 0),
-          qualifyingAmount: Number(entry?.qualifyingAmount || 0)
-        })) : [],
-        year: Array.isArray(payload.year) ? payload.year.map((entry) => ({
-          memberId: entry?.memberId,
-          memberName: entry?.memberName || 'Unknown Member',
-          savingsCount: Number(entry?.savingsCount || 0),
-          qualifyingAmount: Number(entry?.qualifyingAmount || 0)
-        })) : []
+        week: normalizePeriod(payload.week),
+        month: normalizePeriod(payload.month),
+        year: normalizePeriod(payload.year)
       };
     }
 
@@ -829,6 +888,18 @@
         month: 'short',
         year: 'numeric'
       }).toUpperCase();
+    }
+
+    function formatReportDateTime(date = new Date()) {
+      return date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
     }
 
     function addDateStamp(doc, { x, y, width = 64, height = 32, dateText = formatReportDate(), centered = false, margin = 12, placement = 'bottom-right' } = {}, onComplete) {
@@ -1940,6 +2011,7 @@
       }
 
       const reportDate = formatReportDate();
+      const reportDateTime = formatReportDateTime();
       const totalRepaymentAmount = Number(winner.totalRepaymentAmount || 0);
       const repaymentCount = Number(winner.repaymentCount || 0);
       const winnerName = winner.memberName || 'Member';
@@ -1964,7 +2036,7 @@
       doc.setFontSize(11);
       doc.text('P.O Box 108,', 15, 44);
       doc.text('Malakisi.', 15, 50);
-      doc.text('Date: _____________', 15, 60);
+      doc.text(`Date: ${reportDateTime}`, 15, 60);
       doc.text(`Dear ${winnerName},`, 15, 72);
 
       doc.setFont(undefined, 'bold');
@@ -2074,7 +2146,7 @@
       doc.text(`Dear ${winnerName},`, 15, 64);
 
       const letterLines = doc.splitTextToSize(
-        `Congratulations on being crowned the Best Saver of the ${periodLabel} in the Akalapatan Konyango Group!\n\nYour commitment to financial discipline has earned you this well-deserved recognition. In ${periodHeading}, you saved ${qualifyingCount} times with KSh ${qualifyingAmount} from qualifying savings entries of KSh 100 and above, and your total savings balance is KSh ${totalSavings}. Your consistency, dedication, and savings culture are inspiring to the entire group.\n\nKeep up the excellent work. We celebrate your achievement and encourage you to continue building a brighter financial future.\n\nYours Faithfully,\n\nGroup Chairman\nConfirmed by Secretary-Lifa A. Betty\nConfirmed by Treasurer-Getrude Nambuya\n\nMember ID: ${winnerReg}`,
+        `Congratulations on being crowned the Best Saver of the ${periodLabel} in the Akalapatan Konyango Group!\n\nYour commitment to financial discipline has earned you this well-deserved recognition. In ${periodHeading}, you saved ${qualifyingCount} times and deposited KSh ${Number(qualifyingAmount).toLocaleString()} from qualifying savings entries of KSh 100 and above. Your total savings balance is KSh ${Number(totalSavings).toLocaleString()}.\n\nKeep up the excellent work. We celebrate your achievement and encourage you to continue building a brighter financial future.\n\nYours Faithfully,\n\nGroup Chairman\nConfirmed by Secretary-Lifa A. Betty\nConfirmed by Treasurer-Getrude Nambuya\n\nMember ID: ${winnerReg}`,
         180
       );
       doc.text(letterLines, 15, 72);
@@ -2602,6 +2674,44 @@
     if (exportLoanRepaymentReportBtn) {
       exportLoanRepaymentReportBtn.addEventListener('click', function() {
         window.generateLoanRepaymentReport();
+      });
+    }
+
+    const deleteLoanRepaymentRecordsBtn = document.getElementById('deleteLoanRepaymentRecordsBtn');
+    if (deleteLoanRepaymentRecordsBtn) {
+      deleteLoanRepaymentRecordsBtn.addEventListener('click', async function() {
+        const fb = document.getElementById('loanRepaymentReportFeedback');
+        const confirmed = window.confirm('This will permanently remove all saved loan repayment reports and loan statements from the database and local view. Continue?');
+        if (!confirmed) {
+          if (fb) {
+            fb.textContent = 'Deletion cancelled.';
+            fb.style.background = '#fef3c7';
+            fb.style.color = '#92400e';
+          }
+          return;
+        }
+        if (!confirmAdminResetWithPassword('Delete Loan Repayment Reports and Statements', fb)) {
+          return;
+        }
+
+        try {
+          const response = await requestJson('/api/loans/history/reset', { method: 'DELETE' });
+          loanRepaymentHistory = makeEmptyLoanRepaymentHistory();
+          loanRepaymentReportHistory = makeEmptyLoanRepaymentReportHistory();
+          await refreshMembersFromApi();
+          renderAll();
+          if (fb) {
+            fb.textContent = response?.message || 'Loan repayment reports and statements were deleted.';
+            fb.style.background = '#ddf0e5';
+            fb.style.color = '#1a6e4a';
+          }
+        } catch (error) {
+          if (fb) {
+            fb.textContent = `Error: ${error.message}`;
+            fb.style.background = '#fde8e8';
+            fb.style.color = '#a13d3d';
+          }
+        }
       });
     }
 

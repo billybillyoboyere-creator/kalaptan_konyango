@@ -1,13 +1,14 @@
 import hashlib
 import hmac
 import os
+import secrets
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 import mysql.connector
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from mysql.connector import Error
 from dotenv import load_dotenv
@@ -297,6 +298,14 @@ def build_frequency_ranking_payload(rows):
                 "qualifyingAmount": round(qualifying_amount, 2),
             }
         )
+
+    ranked_rows.sort(
+        key=lambda item: (
+            -int(item.get("savingsCount") or 0),
+            -(float(item.get("qualifyingAmount") or 0)),
+            str(item.get("memberName") or "").lower(),
+        )
+    )
     return ranked_rows
 
 
@@ -351,7 +360,51 @@ def verify_password(password, stored_hash):
 def create_app():
     frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
     app = Flask(__name__, static_folder=frontend_dir, static_url_path="")
-    CORS(app)
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.getenv("FLASK_SECRET_KEY", "kalapatan-dev-secret"))
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+    CORS(app, supports_credentials=True)
+
+    @app.after_request
+    def disable_cache(response):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    def get_or_create_csrf_token():
+        token = session.get("csrf_token")
+        if not token:
+            token = secrets.token_urlsafe(32)
+            session["csrf_token"] = token
+        return token
+
+    def validate_csrf_token(token):
+        expected_token = session.get("csrf_token")
+        if not expected_token:
+            return False
+        return hmac.compare_digest(str(expected_token), str(token or ""))
+
+    @app.before_request
+    def enforce_csrf():
+        if request.method in {"OPTIONS"}:
+            return None
+        if not request.path.startswith("/api/"):
+            return None
+        if request.method == "GET" or request.path == "/api/csrf-token":
+            return None
+        token = (
+            request.headers.get("X-CSRF-Token")
+            or request.headers.get("X-CSRFToken")
+            or request.form.get("csrf_token")
+            or request.args.get("csrf_token")
+        )
+        if not validate_csrf_token(token):
+            return jsonify({"error": "CSRF token missing or invalid"}), 403
+        return None
+
+    @app.get("/api/csrf-token")
+    def csrf_token():
+        return jsonify({"csrfToken": get_or_create_csrf_token()})
 
     @app.errorhandler(404)
     def handle_not_found(error):
@@ -1014,8 +1067,17 @@ def create_app():
         except Error as exc:
             return jsonify({"error": str(exc)}), 500
 
+    def require_admin_access():
+        role = str(request.headers.get("X-User-Role") or request.headers.get("X-Role") or request.args.get("role") or "").strip().lower()
+        if role != "chairman" and role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        return None
+
     @app.delete("/api/loans/history/reset")
     def reset_all_loan_history():
+        access_error = require_admin_access()
+        if access_error is not None:
+            return access_error
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -1030,6 +1092,9 @@ def create_app():
 
     @app.delete("/api/loans/history/<int:member_id>/reset")
     def reset_member_loan_history(member_id):
+        access_error = require_admin_access()
+        if access_error is not None:
+            return access_error
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -1668,7 +1733,7 @@ def create_app():
                           AND s.saved_on BETWEEN DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                                               AND DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)
                         GROUP BY m.id, m.{member_name_column}
-                        ORDER BY savings_count DESC, member_name ASC
+                        ORDER BY savings_count DESC, qualifying_amount DESC, member_name ASC
                     """,
                     "month": f"""
                         SELECT
@@ -1682,7 +1747,7 @@ def create_app():
                           AND YEAR(s.saved_on) = YEAR(CURDATE())
                           AND MONTH(s.saved_on) = MONTH(CURDATE())
                         GROUP BY m.id, m.{member_name_column}
-                        ORDER BY savings_count DESC, member_name ASC
+                        ORDER BY savings_count DESC, qualifying_amount DESC, member_name ASC
                     """,
                     "year": f"""
                         SELECT
@@ -1695,7 +1760,7 @@ def create_app():
                         WHERE s.amount >= 100
                           AND YEAR(s.saved_on) = YEAR(CURDATE())
                         GROUP BY m.id, m.{member_name_column}
-                        ORDER BY savings_count DESC, member_name ASC
+                        ORDER BY savings_count DESC, qualifying_amount DESC, member_name ASC
                     """,
                 }
 
@@ -1711,6 +1776,9 @@ def create_app():
 
     @app.delete("/api/savings/history/reset")
     def reset_savings_history():
+        access_error = require_admin_access()
+        if access_error is not None:
+            return access_error
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -1723,6 +1791,9 @@ def create_app():
 
     @app.delete("/api/savings/history/<int:member_id>/reset")
     def reset_member_savings_history(member_id):
+        access_error = require_admin_access()
+        if access_error is not None:
+            return access_error
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
