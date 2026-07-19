@@ -20,14 +20,17 @@
       border: 2px solid transparent;
       background-clip: padding-box;
     }
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
     body {
       background: #eef4f9;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
-      padding: 1.5rem;
-      overflow: hidden;
+      padding: clamp(0.5rem, 2vw, 1rem);
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     /* ---------- LOGIN PAGE ---------- */
     .login-container {
@@ -35,8 +38,9 @@
       border-radius: 2.5rem;
       box-shadow: 0 20px 40px -12px rgba(0,20,30,0.3);
       padding: 2.5rem 2.5rem 2rem;
-      max-width: 440px;
+      max-width: min(100%, 440px);
       width: 100%;
+      margin: 1.5rem auto;
       text-align: center;
       color: white;
     }
@@ -135,12 +139,14 @@
     .app-wrapper {
       display: none;
       max-width: 1500px;
-      width: 100%;
+      width: min(100%, 1500px);
+      margin: 0 auto;
       background: white;
-      border-radius: 2.5rem;
+      border-radius: clamp(1.2rem, 2.4vw, 2.5rem);
       box-shadow: 0 20px 40px -12px rgba(0,20,30,0.25);
-      padding: 1.4rem;
-      max-height: calc(100vh - 3rem);
+      padding: clamp(0.75rem, 2vw, 1.4rem);
+      max-height: none;
+      min-height: auto;
       overflow: hidden;
     }
     .app-wrapper.active-app { display: block; }
@@ -148,13 +154,13 @@
       display: flex;
       gap: 1.2rem;
       align-items: flex-start;
-      height: calc(100vh - 5.2rem);
-      max-height: calc(100vh - 5.2rem);
+      min-height: auto;
+      max-height: none;
       overflow: hidden;
     }
     .sidebar-panel {
-      width: 280px;
-      min-width: 280px;
+      width: min(280px, 24vw);
+      min-width: 220px;
       background: linear-gradient(135deg, #06361b 0%, #0f5b2c 45%, #1a6d35 100%);
       border-radius: 1.8rem;
       padding: 1.1rem;
@@ -268,6 +274,8 @@
       border-bottom: 2px solid #cfe6cf;
       padding-bottom: 1rem;
       flex-wrap: wrap;
+      width: 100%;
+      row-gap: 0.6rem;
     }
     .logo-img {
       width: 60px;
@@ -326,9 +334,10 @@
       font-weight: 600;
       color: #1f5d35;
       border: 1px solid #cbe6c8;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 0.6rem;
+      white-space: nowrap;
     }
     .logout-btn {
       background: #1d6f3a;
@@ -423,11 +432,11 @@
       border-radius: 1.25rem;
       margin-bottom: 1.2rem;
       border: 1px solid #0d5c2a;
-      justify-content: space-between;
+      justify-content: flex-start;
       box-shadow: 0 0 0 3px rgba(47, 123, 68, 0.12), inset 0 1px 0 rgba(255,255,255,0.16);
     }
     .summary-item {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 0.2rem;
       font-size: 0.82rem;
@@ -437,6 +446,8 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       border: 1px solid rgba(255,255,255,0.22);
       line-height: 1.2;
+      flex: 0 1 auto;
+      max-width: 100%;
     }
     .summary-item i { color: #f6c445; width: 1.1rem; text-align: center; font-size: 0.8rem; }
     .summary-item strong { font-weight: 600; color: #f7fdf7; margin-right: 0.2rem; }
@@ -466,6 +477,7 @@
       border: 1px solid #dce8f0;
       box-shadow: 0 4px 8px rgba(0,0,0,0.02);
       margin-bottom: 1.8rem;
+      width: 100%;
     }
     .card-panel h3 {
       display: flex;
@@ -656,18 +668,77 @@
       background:white; border-radius:2rem; padding:2rem; max-width:500px; width:90%; max-height:90vh;
       overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,0.3);
     }
+    @media (max-width: 1200px) {
+      .sidebar-panel { width: min(260px, 24vw); min-width: 210px; }
+      .logo-text .akalapatan { font-size: 1.65rem; }
+    }
     @media (max-width: 980px) {
-      .app-shell { flex-direction: column; height: auto; max-height: none; }
-      .sidebar-panel { width: 100%; min-width: 0; max-height: 320px; }
+      body { padding: 0.75rem; }
+      .app-wrapper { padding: 0.75rem; border-radius: 1.4rem; min-height: auto; }
+      .app-shell { flex-direction: column; min-height: auto; height: auto; max-height: none; }
+      .sidebar-panel { width: 100%; min-width: 0; max-height: none; }
       .app-shell.sidebar-collapsed .sidebar-panel { width: 100%; min-width: 0; }
       .nav-tabs { flex-direction: row; flex-wrap: wrap; }
       .nav-tabs button { flex: 1 1 calc(50% - 0.5rem); font-size: 0.95rem; justify-content: flex-start; }
       .app-shell.sidebar-collapsed .nav-tabs button { font-size: 0.95rem; justify-content: flex-start; }
+      .logo-area { align-items: flex-start; }
+      .sacco-tag { margin-left: 0; order: 3; width: 100%; justify-content: center; }
+    }
+    @media (max-width: 560px) {
+      body { padding: 0.35rem; }
+      .login-container { padding: 1rem; border-radius: 1.25rem; margin: 0.25rem auto; }
+      .login-logo { width: 84px; height: 84px; }
+      .login-title { font-size: clamp(1.35rem, 5vw, 1.7rem); }
+      .login-sub { font-size: 0.8rem; letter-spacing: 1px; }
+      .login-container .form-row input, .login-btn { font-size: 0.95rem; }
+      .app-wrapper { padding: 0.45rem; border-radius: 1rem; }
+      .sidebar-panel { padding: 0.8rem; border-radius: 1rem; }
+      .logo-area { gap: 0.45rem; padding-bottom: 0.75rem; }
+      .panel-toggle-btn { margin-right: 0; }
+      .logo-img { width: 46px; height: 46px; }
+      .logo-text .akalapatan { font-size: 1.05rem; }
+      .logo-text .konyango { font-size: 0.74rem; letter-spacing: 1px; }
+      .logo-text .self-help { padding: 0.1rem 0.55rem; font-size: 0.7rem; }
+      .user-badge, .logout-btn, .sacco-tag { width: 100%; justify-content: center; }
+      .nav-tabs button { padding: 0.65rem 0.75rem; font-size: 0.9rem; }
+      .card-panel { padding: 1rem 0.9rem; border-radius: 1rem; }
+      .summary-grid { padding: 0.6rem; flex-direction: column; align-items: stretch; gap: 0.45rem; }
+      .summary-item { width: 100%; justify-content: space-between; padding: 0.5rem 0.7rem; border-radius: 999px; }
+      .home-hero { grid-template-columns: 1fr; gap: 0.75rem; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; justify-content: center; padding: 0.7rem 1rem; }
+      .form-row { flex-direction: column; align-items: stretch; gap: 0.55rem; }
+      .form-row label { min-width: 0; width: 100%; }
+      .form-row input, .form-row select { width: 100%; min-width: 0; font-size: 0.95rem; }
+      .flex { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+      .report-buttons { flex-direction: column; }
+      .table-wrapper { margin-inline: 0; border-radius: 1rem; }
+      #editModal > div { width: calc(100% - 0.75rem); padding: 1rem; }
     }
     @media (max-width: 700px) {
-      .app-wrapper { padding: 1rem; }
-      .nav-tabs button { flex-basis: 100%; }
-      .login-container { padding: 1.5rem; }
+      body { padding: 0.5rem; }
+      .app-wrapper { padding: 0.6rem; }
+      .login-container { padding: 1.25rem; border-radius: 1.5rem; margin: 0.5rem auto; }
+      .login-logo { width: 90px; height: 90px; }
+      .login-title { font-size: 1.7rem; }
+      .logo-area { gap: 0.55rem; }
+      .panel-toggle-btn { margin-right: 0; }
+      .logo-text .akalapatan { font-size: 1.3rem; }
+      .logo-text .konyango { font-size: 0.85rem; letter-spacing: 1px; }
+      .logo-text .self-help { padding: 0.1rem 0.7rem; }
+      .user-badge, .logout-btn, .sacco-tag { width: 100%; justify-content: center; }
+      .card-panel { padding: 1.1rem 1rem; border-radius: 1.2rem; }
+      .summary-grid { padding: 0.75rem; flex-direction: column; align-items: stretch; }
+      .summary-item { width: 100%; justify-content: space-between; padding: 0.5rem 0.7rem; border-radius: 999px; }
       .home-hero { grid-template-columns: 1fr; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; justify-content: center; }
+      .form-row { flex-direction: column; align-items: stretch; }
+      .form-row label { min-width: 0; width: 100%; }
+      .form-row input, .form-row select { width: 100%; min-width: 0; }
+      .flex { flex-direction: column; align-items: stretch; }
+      .report-buttons { flex-direction: column; }
+      .table-wrapper { margin-inline: -0.25rem; }
+      #editModal > div { width: calc(100% - 1rem); padding: 1.2rem; }
     }
 
