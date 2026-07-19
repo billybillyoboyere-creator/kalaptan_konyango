@@ -22,6 +22,42 @@
     const userBadge = document.getElementById('userBadge');
     const adminTabBtn = document.getElementById('adminTabBtn');
     const resetMembersBtn = document.getElementById('resetMembersBtn');
+    const chairmanPasswordCard = document.getElementById('chairmanPasswordCard');
+    const selfPasswordCard = document.getElementById('selfPasswordCard');
+    const appShell = document.querySelector('.app-shell');
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+    const panelToggleBtn = document.getElementById('panelToggleBtn');
+
+    function updateSidebarToggleState() {
+      const collapsed = appShell && appShell.classList.contains('sidebar-collapsed');
+      if (toggleSidebarBtn) {
+        toggleSidebarBtn.querySelector('i').className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+        toggleSidebarBtn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+      }
+      if (panelToggleBtn) {
+        panelToggleBtn.querySelector('i').className = collapsed ? 'fas fa-bars' : 'fas fa-times';
+        panelToggleBtn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+      }
+    }
+
+    function setSidebarCollapsed(collapsed) {
+      if (appShell) {
+        appShell.classList.toggle('sidebar-collapsed', collapsed);
+      }
+      updateSidebarToggleState();
+    }
+
+    if (toggleSidebarBtn) {
+      toggleSidebarBtn.addEventListener('click', function() {
+        setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed'));
+      });
+    }
+    if (panelToggleBtn) {
+      panelToggleBtn.addEventListener('click', function() {
+        setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed'));
+      });
+    }
+    setSidebarCollapsed(false);
 
     document.getElementById('loginBtn').addEventListener('click', async function() {
       const username = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -51,6 +87,8 @@
         const isAdmin = isAdminRole(currentRole);
         if (isAdmin) {
           adminTabBtn.style.display = 'inline-flex';
+          if (chairmanPasswordCard) chairmanPasswordCard.style.display = 'block';
+          if (selfPasswordCard) selfPasswordCard.style.display = 'block';
           if (resetMembersBtn) resetMembersBtn.style.display = 'inline-flex';
           const resetHistoryBtn = document.getElementById('resetSavingsHistoryBtn');
           const resetSelectedMemberHistoryBtn = document.getElementById('resetSelectedMemberHistoryBtn');
@@ -76,6 +114,8 @@
           if (statementResetBtn) statementResetBtn.style.display = 'inline-flex';
         } else {
           adminTabBtn.style.display = 'none';
+          if (chairmanPasswordCard) chairmanPasswordCard.style.display = 'none';
+          if (selfPasswordCard) selfPasswordCard.style.display = 'block';
           if (resetMembersBtn) resetMembersBtn.style.display = 'none';
           const resetHistoryBtn = document.getElementById('resetSavingsHistoryBtn');
           const resetSelectedMemberHistoryBtn = document.getElementById('resetSelectedMemberHistoryBtn');
@@ -118,6 +158,8 @@
       document.getElementById('loginPass').value = '';
       loginError.style.display = 'none';
       adminTabBtn.style.display = 'none';
+      if (chairmanPasswordCard) chairmanPasswordCard.style.display = 'none';
+      if (selfPasswordCard) selfPasswordCard.style.display = 'none';
       if (resetMembersBtn) resetMembersBtn.style.display = 'none';
       const resetHistoryBtn = document.getElementById('resetSavingsHistoryBtn');
       const resetSelectedMemberHistoryBtn = document.getElementById('resetSelectedMemberHistoryBtn');
@@ -152,7 +194,11 @@
       try {
         await requestJson('/api/auth/password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Name': currentUser || '',
+            'X-User-Role': currentRole || ''
+          },
           body: JSON.stringify({ username: userSelect, password: newPass })
         });
         validUsers[userSelect].password = newPass;
@@ -433,27 +479,40 @@
       return `${prefix}${nextNumber}`;
     }
 
+    function buildApiCandidateUrls(path) {
+      const candidateUrls = [];
+      if (!path) return candidateUrls;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        candidateUrls.push(path);
+        return candidateUrls;
+      }
+      const currentOrigin = window.location.origin;
+      if (currentOrigin) {
+        candidateUrls.push(`${currentOrigin}${path.startsWith('/') ? path : `/${path}`}`);
+      }
+      candidateUrls.push(path, `http://127.0.0.1:5000${path.startsWith('/') ? path : `/${path}`}`);
+      return [...new Set(candidateUrls)];
+    }
+
     async function fetchCsrfToken() {
-      try {
-        const response = await fetch('/api/csrf-token', { method: 'GET', credentials: 'include' });
-        const payload = await response.json().catch(() => ({}));
-        if (payload?.csrfToken) {
-          csrfToken = payload.csrfToken;
-          return csrfToken;
+      const candidateUrls = buildApiCandidateUrls('/api/csrf-token');
+      for (const url of candidateUrls) {
+        try {
+          const response = await fetch(url, { method: 'GET', credentials: 'include' });
+          const payload = await response.json().catch(() => ({}));
+          if (payload?.csrfToken) {
+            csrfToken = payload.csrfToken;
+            return csrfToken;
+          }
+        } catch (error) {
+          console.warn(`Unable to fetch CSRF token from ${url}.`, error);
         }
-      } catch (error) {
-        console.warn('Unable to fetch CSRF token.', error);
       }
       return csrfToken;
     }
 
     async function requestJson(path, options = {}) {
-      const candidateUrls = [];
-      if (path.startsWith('http://') || path.startsWith('https://')) {
-        candidateUrls.push(path);
-      } else {
-        candidateUrls.push(path, `http://127.0.0.1:5000${path}`);
-      }
+      const candidateUrls = buildApiCandidateUrls(path);
 
       const requestMethod = String(options.method || 'GET').toUpperCase();
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod)) {
@@ -469,6 +528,7 @@
           }
           if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod)) {
             requestHeaders.set('X-CSRF-Token', csrfToken);
+            requestHeaders.set('X-CSRFToken', csrfToken);
           }
           const requestOptions = {
             ...options,
@@ -1061,6 +1121,19 @@
         fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
         return;
       }
+
+      const enteredPassword = window.prompt('Enter your current login password to initiate this loan application.');
+      if (enteredPassword === null) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Loan application cancelled.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+      if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser]?.password || '')) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Loan application blocked: incorrect password.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+
       const interest = principal * (interestRate / 100) * months;
       const totalDue = principal + interest;
       try {
@@ -1149,6 +1222,18 @@
         return;
       }
 
+      const enteredPassword = window.prompt('Enter your current login password to confirm this account update.');
+      if (enteredPassword === null) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Account update cancelled.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+      if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser]?.password || '')) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Account update blocked: incorrect password.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+
       try {
         const data = await requestJson('/api/savings', {
           method: 'POST',
@@ -1227,6 +1312,18 @@
       }
       if (repayAmount > member.loanBalance) {
         fb.textContent = `Warning: Repayment cannot exceed outstanding balance (Ksh ${member.loanBalance.toFixed(2)}).`;
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+
+      const enteredPassword = window.prompt('Enter your current login password to confirm this repayment.');
+      if (enteredPassword === null) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Repayment cancelled.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+      if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser]?.password || '')) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Repayment blocked: incorrect password.';
         fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
         return;
       }
@@ -1575,6 +1672,18 @@
         fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
         return;
       }
+      const enteredPassword = window.prompt('Enter your current login password to confirm this withdrawal request.');
+      if (enteredPassword === null) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Withdrawal request cancelled.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+      if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser]?.password || '')) {
+        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Withdrawal request blocked: incorrect password.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+        return;
+      }
+
       const accountLabels = {
         emergency: 'Emergency Fund',
         education: 'Education Fund',
@@ -2466,6 +2575,7 @@
     // ---------- TABS ----------
     const tabs = document.querySelectorAll('.nav-tabs button');
     const pages = {
+      pageHome: document.getElementById('pageHome'),
       pageMembers: document.getElementById('pageMembers'),
       pageRegister: document.getElementById('pageRegister'),
       pageLoan: document.getElementById('pageLoan'),
@@ -2480,15 +2590,24 @@
       pageForms: document.getElementById('pageForms'),
       pageAdmin: document.getElementById('pageAdmin')
     };
+    function activatePage(targetPage) {
+      tabs.forEach(b => b.classList.remove('active'));
+      const matchingButton = Array.from(tabs).find(btn => btn.dataset.page === targetPage);
+      if (matchingButton) matchingButton.classList.add('active');
+      Object.keys(pages).forEach(key => pages[key].classList.remove('active-page'));
+      if (pages[targetPage]) pages[targetPage].classList.add('active-page');
+    }
     tabs.forEach(btn => {
       btn.addEventListener('click', function() {
-        tabs.forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        Object.keys(pages).forEach(key => pages[key].classList.remove('active-page'));
-        const target = this.dataset.page;
-        if (pages[target]) pages[target].classList.add('active-page');
+        activatePage(this.dataset.page);
       });
     });
+    document.querySelectorAll('.hero-actions button[data-page]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        activatePage(this.dataset.page);
+      });
+    });
+    activatePage('pageHome');
 
     // ---------- ADMIN: FORM LIBRARY ----------
     const uploadFormBtn = document.getElementById('adminUploadFormBtn');

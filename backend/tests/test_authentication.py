@@ -156,6 +156,126 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(response.get_json()["role"], "Chairman")
         self.assertEqual(response.get_json()["user"], "chairman")
 
+    def test_non_chairman_cannot_change_another_users_password(self):
+        class FakeCursor:
+            def __init__(self):
+                self.executed_queries = []
+
+            def execute(self, query, params=None, **kwargs):
+                self.executed_queries.append((query, params))
+
+            def fetchone(self):
+                if self.executed_queries and self.executed_queries[-1][0].startswith("SELECT id FROM auth_users"):
+                    return {"id": 2}
+                return None
+
+            def fetchall(self):
+                return []
+
+            def close(self):
+                return None
+
+        class FakeConnection:
+            def __init__(self):
+                self.cursor_obj = FakeCursor()
+
+            def cursor(self, dictionary=False):
+                return self.cursor_obj
+
+            def commit(self):
+                return None
+
+            def rollback(self):
+                return None
+
+            def close(self):
+                return None
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        fake_conn = FakeConnection()
+        with patch("app._get_mysql_connection", return_value=(fake_conn, None)):
+            app = create_app()
+            client = app.test_client()
+            token_response = client.get("/api/csrf-token")
+            csrf_token = token_response.get_json()["csrfToken"]
+            response = client.post(
+                "/api/auth/password",
+                json={"username": "secretary", "password": "new-password"},
+                headers={
+                    "X-CSRF-Token": csrf_token,
+                    "X-User-Role": "Secretary",
+                    "X-User-Name": "secretary",
+                },
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("chairman", response.get_json()["error"].lower())
+
+    def test_chairman_can_change_any_password(self):
+        class FakeCursor:
+            def __init__(self):
+                self.executed_queries = []
+
+            def execute(self, query, params=None, **kwargs):
+                self.executed_queries.append((query, params))
+
+            def fetchone(self):
+                if self.executed_queries and self.executed_queries[-1][0].startswith("SELECT id FROM auth_users"):
+                    return {"id": 2}
+                return None
+
+            def fetchall(self):
+                return []
+
+            def close(self):
+                return None
+
+        class FakeConnection:
+            def __init__(self):
+                self.cursor_obj = FakeCursor()
+
+            def cursor(self, dictionary=False):
+                return self.cursor_obj
+
+            def commit(self):
+                return None
+
+            def rollback(self):
+                return None
+
+            def close(self):
+                return None
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        fake_conn = FakeConnection()
+        with patch("app._get_mysql_connection", return_value=(fake_conn, None)):
+            app = create_app()
+            client = app.test_client()
+            token_response = client.get("/api/csrf-token")
+            csrf_token = token_response.get_json()["csrfToken"]
+            response = client.post(
+                "/api/auth/password",
+                json={"username": "treasurer", "password": "new-password"},
+                headers={
+                    "X-CSRF-Token": csrf_token,
+                    "X-User-Role": "Chairman",
+                    "X-User-Name": "chairman",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.get_json()["success"])
+
 
 if __name__ == "__main__":
     unittest.main()

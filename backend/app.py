@@ -761,9 +761,16 @@ def create_app():
         data = request.get_json(silent=True) or {}
         username = str(data.get("username") or "").strip().lower()
         password = str(data.get("password") or "").strip()
+        acting_user = str(request.headers.get("X-User-Name") or request.headers.get("X-User") or "").strip().lower()
+        acting_role = str(request.headers.get("X-User-Role") or "").strip().lower()
 
         if not username or not password:
             return jsonify({"error": "username and password are required"}), 400
+
+        if acting_user and acting_user != username:
+            is_chairman = acting_role == "chairman" or acting_role == "admin"
+            if not is_chairman:
+                return jsonify({"error": "Only the chairman can change another user's password"}), 403
 
         try:
             with get_connection() as conn:

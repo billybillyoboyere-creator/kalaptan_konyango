@@ -37,50 +37,87 @@
 <!-- ========== MAIN APPLICATION ========== -->
 <div id="appWrapper" class="app-wrapper">
 
-  <!-- HEADER with user & logout -->
-  <div class="logo-area">
-    <img src="assets/kalapatan logo.PNG" alt="Kalapatan Logo" class="logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect width=%2260%22 height=%2260%22 fill=%22%230b2a3b%22/%3E%3Ctext x=%2230%22 y=%2240%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23f6c445%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E'">
-    <div class="logo-text">
-      <span class="akalapatan">KALAPATAN</span>
-      <span class="konyango">KONYANGO</span>
-      <span class="self-help">SELF HELP GROUP</span>
-    </div>
-    <span class="sacco-tag"><i class="fas fa-hand-holding-usd"></i> GROUP LOAN</span>
-    <span class="user-badge" id="userBadge"><i class="fas fa-user-cog"></i> Chairman</span>
-    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
-  </div>
+  <div class="app-shell">
+    <aside class="sidebar-panel">
+      <div class="sidebar-brand">
+        <img src="assets/kalapatan logo.PNG" alt="Kalapatan Logo" class="logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect width=%2260%22 height=%2260%22 fill=%22%230b2a3b%22/%3E%3Ctext x=%2230%22 y=%2240%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23f6c445%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E'">
+        <div>
+          <h2>Kalapatan</h2>
+          <p>Konyango SHG</p>
+        </div>
+        <button class="sidebar-toggle-btn" id="toggleSidebarBtn" type="button" title="Hide sidebar"><i class="fas fa-chevron-left"></i></button>
+      </div>
 
-  <!-- SUMMARY -->
-  <div class="summary-grid" id="summaryDisplay">
-    <div class="summary-item"><i class="fas fa-users"></i> <strong>Members</strong> <span class="value" id="totalMembers">12</span></div>
-    <div class="summary-item"><i class="fas fa-coins"></i> <strong>Registration Fees</strong> <span class="value" id="totalRegFees">Ksh 2,400</span></div>
-    <div class="summary-item"><i class="fas fa-ambulance"></i> <strong>Emergency</strong> <span class="value" id="totalEmergency">Ksh 2,250</span></div>
-    <div class="summary-item"><i class="fas fa-graduation-cap"></i> <strong>Education</strong> <span class="value" id="totalEducation">Ksh 300</span></div>
-    <div class="summary-item"><i class="fas fa-building"></i> <strong>Fixed deposit</strong> <span class="value" id="totalFixed">Ksh 0</span></div>
-    <div class="summary-item"><i class="fas fa-chart-line"></i> <strong>Development</strong> <span class="value" id="totalDevelopment">Ksh 0</span></div>
-    <div class="summary-item total-all"><i class="fas fa-circle-dollar"></i> <strong>ALL ACCOUNTS</strong> <span class="value" id="totalAll">Ksh 4,950</span></div>
-  </div>
+      <div class="nav-tabs">
+        <button class="active" data-page="pageHome"><i class="fas fa-house"></i> Home</button>
+        <button data-page="pageMembers"><i class="fas fa-list"></i> Members</button>
+        <button data-page="pageRegister"><i class="fas fa-user-plus"></i> Register</button>
+        <button data-page="pageLoan"><i class="fas fa-hand-holding-usd"></i> Loan</button>
+        <button data-page="pageRepayment"><i class="fas fa-coins"></i> Repay Loan</button>
+        <button data-page="pageLoanRepaymentReport"><i class="fas fa-file-pdf"></i> Loan Repayment Report</button>
+        <button data-page="pageLoanRepaymentStatement"><i class="fas fa-receipt"></i> Loan Statement</button>
+        <button data-page="pageWithdrawal"><i class="fas fa-money-bill-wave"></i> Withdrawal</button>
+        <button data-page="pageUpdate"><i class="fas fa-pen-to-square"></i> Update Accounts</button>
+        <button data-page="pageCharges"><i class="fas fa-percent"></i> Charges</button>
+        <button data-page="pageSavingsHistory"><i class="fas fa-chart-column"></i> Savings History</button>
+        <button data-page="pageBestSaver"><i class="fas fa-trophy"></i> Best Saver</button>
+        <button data-page="pageForms"><i class="fas fa-download"></i> Forms</button>
+        <button data-page="pageAdmin" id="adminTabBtn" style="display:none;"><i class="fas fa-user-shield"></i> Admin</button>
+      </div>
 
-  <!-- TABS -->
-  <div class="nav-tabs">
-    <button class="active" data-page="pageMembers"><i class="fas fa-list"></i> Members</button>
-    <button data-page="pageRegister"><i class="fas fa-user-plus"></i> Register</button>
-    <button data-page="pageLoan"><i class="fas fa-hand-holding-usd"></i> Loan</button>
-    <button data-page="pageRepayment"><i class="fas fa-coins"></i> Repay Loan</button>
-    <button data-page="pageLoanRepaymentReport"><i class="fas fa-file-pdf"></i> Loan Repayment Report</button>
-    <button data-page="pageLoanRepaymentStatement"><i class="fas fa-receipt"></i> Loan Statement</button>
-    <button data-page="pageWithdrawal"><i class="fas fa-money-bill-wave"></i> Withdrawal</button>
-    <button data-page="pageUpdate"><i class="fas fa-pen-to-square"></i> Update Accounts</button>
-    <button data-page="pageCharges"><i class="fas fa-percent"></i> Charges</button>
-    <button data-page="pageSavingsHistory"><i class="fas fa-chart-column"></i> Savings History</button>
-    <button data-page="pageBestSaver"><i class="fas fa-trophy"></i> Best Saver</button>
-    <button data-page="pageForms"><i class="fas fa-download"></i> Forms</button>
-    <!-- NEW TAB: ADMIN (only chairman) -->
-    <button data-page="pageAdmin" id="adminTabBtn" style="display:none;"><i class="fas fa-user-shield"></i> Admin</button>
-  </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-pill"><i class="fas fa-shield-alt"></i> Secure member data</div>
+        <div class="sidebar-pill alt"><i class="fas fa-chart-simple"></i> Loan insights ready</div>
+      </div>
+    </aside>
 
-  <!-- PAGE: MEMBERS -->
-  <div id="pageMembers" class="page active-page">
+    <main class="main-panel">
+      <!-- HEADER with user & logout -->
+      <div class="logo-area">
+        <img src="assets/kalapatan logo.PNG" alt="Kalapatan Logo" class="logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect width=%2260%22 height=%2260%22 fill=%22%230b2a3b%22/%3E%3Ctext x=%2230%22 y=%2240%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23f6c445%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E'">
+        <button class="panel-toggle-btn" id="panelToggleBtn" type="button" title="Toggle sidebar"><i class="fas fa-bars"></i></button>
+        <div class="logo-text">
+          <span class="akalapatan">KALAPATAN</span>
+          <span class="konyango">KONYANGO</span>
+          <span class="self-help">SELF HELP GROUP</span>
+        </div>
+        <span class="sacco-tag"><i class="fas fa-hand-holding-usd"></i> GROUP LOAN</span>
+        <span class="user-badge" id="userBadge"><i class="fas fa-user-cog"></i> Chairman</span>
+        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="summary-grid" id="summaryDisplay">
+        <div class="summary-item"><i class="fas fa-users"></i> <strong>Members</strong> <span class="value" id="totalMembers">12</span></div>
+        <div class="summary-item"><i class="fas fa-coins"></i> <strong>Registration Fees</strong> <span class="value" id="totalRegFees">Ksh 2,400</span></div>
+        <div class="summary-item"><i class="fas fa-ambulance"></i> <strong>Emergency</strong> <span class="value" id="totalEmergency">Ksh 2,250</span></div>
+        <div class="summary-item"><i class="fas fa-graduation-cap"></i> <strong>Education</strong> <span class="value" id="totalEducation">Ksh 300</span></div>
+        <div class="summary-item"><i class="fas fa-building"></i> <strong>Fixed deposit</strong> <span class="value" id="totalFixed">Ksh 0</span></div>
+        <div class="summary-item"><i class="fas fa-chart-line"></i> <strong>Development</strong> <span class="value" id="totalDevelopment">Ksh 0</span></div>
+        <div class="summary-item total-all"><i class="fas fa-circle-dollar"></i> <strong>ALL ACCOUNTS</strong> <span class="value" id="totalAll">Ksh 4,950</span></div>
+      </div>
+
+      <div id="pageHome" class="page active-page">
+        <div class="card-panel home-hero">
+          <div class="hero-copy">
+            <p class="eyebrow"><i class="fas fa-house"></i> Today at a glance</p>
+            <h3>Welcome to the Kalapatan dashboard</h3>
+            <p>Review member activity, monitor savings, and move loans forward from one guided workspace.</p>
+            <div class="hero-actions">
+              <button class="btn btn-success" type="button" data-page="pageRegister"><i class="fas fa-user-plus"></i> Register member</button>
+              <button class="btn btn-info" type="button" data-page="pageLoan"><i class="fas fa-hand-holding-usd"></i> Apply loan</button>
+            </div>
+          </div>
+          <div class="hero-metrics">
+            <div class="metric-card"><i class="fas fa-users"></i><span>12 active members</span></div>
+            <div class="metric-card"><i class="fas fa-coins"></i><span>Ksh 4,950 total savings</span></div>
+            <div class="metric-card"><i class="fas fa-file-invoice-dollar"></i><span>Loan records ready</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: MEMBERS -->
+  <div id="pageMembers" class="page">
     <div class="card-panel" style="background:white; border:none; padding:0;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem;">
         <h3 style="margin-bottom:0.5rem;"><i class="fas fa-users"></i> Registered Members</h3>
@@ -442,7 +479,7 @@
   <div id="pageAdmin" class="page">
     <div class="card-panel">
       <h3><i class="fas fa-user-shield"></i> Admin · Password Management</h3>
-      <p style="color:#1f4b63; margin-bottom:1.2rem;"><i class="fas fa-lock"></i> <strong>Chairman only:</strong> Change passwords for chairman, secretary, and treasurer.</p>
+      <p style="color:#1f4b63; margin-bottom:1.2rem;"><i class="fas fa-lock"></i> <strong>Chairman only:</strong> Change the chairman's password, or switch to secretary or treasurer and update theirs from this admin page.</p>
       
       <div class="form-row">
         <label><i class="fas fa-user-tie"></i> Select User</label>
@@ -549,6 +586,9 @@
         <button class="btn btn-success" onclick="saveMemberEdit()"><i class="fas fa-save"></i> Save Changes</button>
       </div>
     </div>
+  </div>
+
+    </main>
   </div>
 
   <div class="footer-note">
