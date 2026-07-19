@@ -7,8 +7,8 @@
       scrollbar-color: #5b86a5 #eef4f9;
     }
     *::-webkit-scrollbar {
-      width: 9px;
-      height: 9px;
+      width: 8px;
+      height: 8px;
     }
     *::-webkit-scrollbar-track {
       background: #eef4f9;
@@ -169,9 +169,20 @@
       flex-direction: column;
       gap: 1rem;
       color: white;
-      max-height: 100%;
-      overflow: hidden;
+      max-height: calc(100vh - 2rem);
+      min-height: 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.35) transparent;
       transition: width 0.2s ease, min-width 0.2s ease, padding 0.2s ease;
+    }
+    .sidebar-panel::-webkit-scrollbar {
+      width: 7px;
+    }
+    .sidebar-panel::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.35);
+      border-radius: 999px;
     }
     .app-shell.sidebar-collapsed .sidebar-panel {
       width: 82px;
@@ -241,7 +252,17 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      overflow: hidden;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #5b86a5 #eef4f9;
+    }
+    .main-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+    .main-panel::-webkit-scrollbar-thumb {
+      background: #5b86a5;
+      border-radius: 999px;
     }
     .sidebar-footer {
       display: flex;
@@ -371,11 +392,13 @@
       margin-bottom: 0;
       border: none;
       flex-wrap: nowrap;
-      overflow-y: auto;
+      overflow-y: scroll;
       overflow-x: hidden;
       padding-right: 0.2rem;
       flex: 1 1 auto;
       min-height: 0;
+      max-height: calc(100vh - 14rem);
+      scrollbar-gutter: stable;
     }
     .nav-tabs button {
       background: rgba(255,255,255,0.08);
@@ -405,9 +428,19 @@
     .page.active-page {
       display: block;
       flex: 1;
-      overflow: auto;
+      overflow-y: scroll;
+      overflow-x: hidden;
       padding-right: 0.35rem;
       scrollbar-gutter: stable;
+      scrollbar-width: thin;
+      scrollbar-color: #5b86a5 #eef4f9;
+    }
+    .page.active-page::-webkit-scrollbar {
+      width: 8px;
+    }
+    .page.active-page::-webkit-scrollbar-thumb {
+      background: #5b86a5;
+      border-radius: 999px;
     }
     @keyframes fade { from { opacity: 0.4; } to { opacity: 1; } }
 
@@ -557,10 +590,22 @@
 
     .table-wrapper {
       overflow-x: auto;
+      overflow-y: scroll;
+      max-height: min(60vh, 420px);
       margin: 1.5rem 0 1rem;
       border-radius: 1.5rem;
       border: 1px solid #dde7ef;
       background: white;
+      scrollbar-width: thin;
+      scrollbar-color: #5b86a5 #eef4f9;
+    }
+    .table-wrapper::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .table-wrapper::-webkit-scrollbar-thumb {
+      background: #5b86a5;
+      border-radius: 999px;
     }
     table {
       width: 100%;
@@ -594,6 +639,16 @@
       padding: 0.5rem 1.2rem;
       border-radius: 40px;
       font-size: 0.85rem;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #5b86a5 #eef4f9;
+    }
+    .loan-history::-webkit-scrollbar {
+      height: 7px;
+    }
+    .loan-history::-webkit-scrollbar-thumb {
+      background: #5b86a5;
+      border-radius: 999px;
     }
     .loan-history i { color: #f6b83d; margin-right: 0.4rem; }
 
