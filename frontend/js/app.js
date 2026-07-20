@@ -526,15 +526,18 @@
     function buildApiCandidateUrls(path) {
       const candidateUrls = [];
       if (!path) return candidateUrls;
+      const cacheBust = `t=${Date.now()}`;
+      const separator = path.includes('?') ? '&' : '?';
+      const cacheBustedPath = `${path}${separator}${cacheBust}`;
       if (path.startsWith('http://') || path.startsWith('https://')) {
-        candidateUrls.push(path);
+        candidateUrls.push(cacheBustedPath);
         return candidateUrls;
       }
       const currentOrigin = window.location.origin;
       if (currentOrigin) {
-        candidateUrls.push(`${currentOrigin}${path.startsWith('/') ? path : `/${path}`}`);
+        candidateUrls.push(`${currentOrigin}${cacheBustedPath.startsWith('/') ? cacheBustedPath : `/${cacheBustedPath}`}`);
       }
-      candidateUrls.push(path, `http://127.0.0.1:5000${path.startsWith('/') ? path : `/${path}`}`);
+      candidateUrls.push(cacheBustedPath, `http://127.0.0.1:5000${cacheBustedPath.startsWith('/') ? cacheBustedPath : `/${cacheBustedPath}`}`);
       return [...new Set(candidateUrls)];
     }
 
@@ -542,7 +545,7 @@
       const candidateUrls = buildApiCandidateUrls('/api/csrf-token');
       for (const url of candidateUrls) {
         try {
-          const response = await fetch(url, { method: 'GET', credentials: 'include' });
+          const response = await fetch(url, { method: 'GET', credentials: 'include', cache: 'no-store' });
           const payload = await response.json().catch(() => ({}));
           if (payload?.csrfToken) {
             csrfToken = payload.csrfToken;
@@ -578,6 +581,7 @@
             ...options,
             credentials: 'include',
             headers: requestHeaders,
+            cache: 'no-store',
           };
           const response = await fetch(url, requestOptions);
           const text = await response.text();
@@ -1603,7 +1607,7 @@
       const historyTable = document.getElementById('memberRepaymentHistoryTable');
       
       try {
-        const response = await fetch(`/api/repayments/history/${member.id}`);
+        const response = await fetch(`/api/repayments/history/${member.id}`, { credentials: 'include', cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to fetch repayment history');
         const repayments = await response.json();
         
@@ -1657,7 +1661,7 @@
       const fb = document.getElementById('statementFeedback');
       
       try {
-        const response = await fetch(`/api/repayment-statements/member/${member.id}`);
+        const response = await fetch(`/api/repayment-statements/member/${member.id}`, { credentials: 'include', cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to fetch statements');
         const statements = await response.json();
         
@@ -1729,7 +1733,7 @@
       const fb = document.getElementById('statementFeedback');
 
       try {
-        const response = await fetch(`/api/repayment-statements/member/${member.id}`);
+        const response = await fetch(`/api/repayment-statements/member/${member.id}`, { credentials: 'include', cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to fetch statements');
         const statements = await response.json();
 
