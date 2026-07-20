@@ -441,6 +441,34 @@
       flex-direction: column;
       gap: 0.35rem;
     }
+    .active-loan-list {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .active-loan-card {
+      background: #ffffff;
+      border: 1px solid #dce8f0;
+      border-radius: 1.2rem;
+      padding: 1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      box-shadow: 0 6px 18px rgba(8, 27, 41, 0.04);
+    }
+    .active-loan-card strong {
+      color: #0b2a3b;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    .active-loan-meta {
+      color: #1f4b63;
+      font-size: 0.94rem;
+      margin-top: 0.2rem;
+    }
     .form-library-item strong {
       color: #0b2a3b;
       display: block;
@@ -448,52 +476,41 @@
     }
 
     .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
-      gap: 0.55rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 0.7rem;
       background: linear-gradient(135deg, #0b4b25 0%, #136b37 100%);
-      padding: 0.75rem 0.9rem;
+      padding: 0.7rem 1rem;
       border-radius: 1.25rem;
       margin-bottom: 1.2rem;
       border: 1px solid #0d5c2a;
+      justify-content: flex-start;
       box-shadow: 0 0 0 3px rgba(47, 123, 68, 0.12), inset 0 1px 0 rgba(255,255,255,0.16);
     }
     .summary-item {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.45rem;
-      flex-wrap: wrap;
+      gap: 0.2rem;
       font-size: 0.82rem;
       background: linear-gradient(135deg, #2f7b44 0%, #4fa15f 100%);
-      padding: 0.45rem 0.7rem;
+      padding: 0.15rem 0.7rem;
       border-radius: 999px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       border: 1px solid rgba(255,255,255,0.22);
-      line-height: 1.25;
-      min-width: 0;
+      line-height: 1.2;
+      flex: 0 1 auto;
+      max-width: 100%;
     }
-    .summary-item i { color: #f6c445; width: 1.1rem; text-align: center; font-size: 0.8rem; flex-shrink: 0; }
-    .summary-item strong {
-      font-weight: 600;
-      color: #f7fdf7;
-      margin-right: 0.2rem;
-      display: inline-flex;
-      align-items: center;
-      flex: 1 1 auto;
-      min-width: 0;
-      line-height: 1.25;
-    }
+    .summary-item i { color: #f6c445; width: 1.1rem; text-align: center; font-size: 0.8rem; }
+    .summary-item strong { font-weight: 600; color: #f7fdf7; margin-right: 0.2rem; }
     .summary-item .value {
       font-weight: 700;
       color: #ffffff;
       background: rgba(255,255,255,0.16);
-      padding: 0.16rem 0.6rem;
+      padding: 0.1rem 0.55rem;
       border-radius: 999px;
       font-size: 0.74rem;
       border: 1px solid rgba(255,255,255,0.22);
-      white-space: nowrap;
-      flex-shrink: 0;
     }
     .total-all {
       background: linear-gradient(135deg, #0d5c2a 0%, #1f7b3e 100%);
@@ -744,6 +761,30 @@
     .flex { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
     .report-buttons { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 1rem; }
 
+    .modal-overlay {
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55);
+      z-index:9999; align-items:center; justify-content:center; padding:1rem;
+    }
+    .modal-card {
+      background:white; border-radius:2rem; padding:1.5rem; max-width:900px; width:min(92vw, 920px); max-height:92vh;
+      overflow-y:auto; box-shadow:0 12px 44px rgba(0,0,0,0.28);
+    }
+    .modal-header {
+      display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:1rem;
+    }
+    .modal-header h3 { margin:0; color:#0b2a3b; }
+    .modal-actions { display:flex; justify-content:flex-end; margin-top:1rem; }
+    .form-preview-body {
+      min-height: 280px; border:1px solid #dce8f0; border-radius:1.25rem; padding:1rem; background:#f7fbff; display:flex; align-items:center; justify-content:center; overflow:auto;
+    }
+    .form-preview-body img, .form-preview-body iframe, .form-preview-body pre {
+      width:100%; max-width:100%; max-height:68vh; border:none; border-radius:1rem;
+    }
+    .form-preview-body iframe { min-height: 68vh; }
+    .form-preview-body pre {
+      white-space:pre-wrap; word-break:break-word; text-align:left; font-family:Consolas, 'Courier New', monospace; background:white; padding:1rem; border:1px solid #eff5f9;
+    }
+    .preview-media { object-fit: contain; }
     #editModal {
       display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);
       z-index:9999; align-items:center; justify-content:center;
@@ -814,10 +855,8 @@
       }
       .nav-tabs button i { margin: 0; font-size: 0.95rem; }
       .card-panel { padding: 1rem 0.9rem; border-radius: 1rem; }
-      .summary-grid { grid-template-columns: 1fr; padding: 0.6rem; gap: 0.45rem; }
-      .summary-item { width: 100%; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-radius: 1rem; }
-      .summary-item strong { font-size: 0.8rem; }
-      .summary-item .value { font-size: 0.76rem; padding: 0.16rem 0.55rem; }
+      .summary-grid { padding: 0.6rem; flex-direction: column; align-items: stretch; gap: 0.45rem; }
+      .summary-item { width: 100%; justify-content: space-between; padding: 0.5rem 0.7rem; border-radius: 999px; }
       .home-hero { grid-template-columns: 1fr; gap: 0.75rem; }
       .hero-actions { flex-direction: column; align-items: stretch; }
       .btn { width: 100%; justify-content: center; padding: 0.7rem 1rem; }
@@ -842,8 +881,8 @@
       .logo-text .self-help { padding: 0.1rem 0.7rem; }
       .user-badge, .logout-btn, .sacco-tag { width: 100%; justify-content: center; }
       .card-panel { padding: 1.1rem 1rem; border-radius: 1.2rem; }
-      .summary-grid { grid-template-columns: 1fr; padding: 0.75rem; gap: 0.5rem; }
-      .summary-item { width: 100%; justify-content: space-between; align-items: center; padding: 0.6rem 0.7rem; border-radius: 1rem; }
+      .summary-grid { padding: 0.75rem; flex-direction: column; align-items: stretch; }
+      .summary-item { width: 100%; justify-content: space-between; padding: 0.5rem 0.7rem; border-radius: 999px; }
       .home-hero { grid-template-columns: 1fr; }
       .hero-actions { flex-direction: column; align-items: stretch; }
       .btn { width: 100%; justify-content: center; }

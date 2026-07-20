@@ -56,6 +56,7 @@
         <button data-page="pageMembers"><i class="fas fa-list"></i> Members</button>
         <button data-page="pageRegister"><i class="fas fa-user-plus"></i> Register</button>
         <button data-page="pageLoan"><i class="fas fa-hand-holding-usd"></i> Loan</button>
+        <button data-page="pageActiveLoans"><i class="fas fa-user-check"></i> Active Loans</button>
         <button data-page="pageRepayment"><i class="fas fa-coins"></i> Repay Loan</button>
         <button data-page="pageLoanRepaymentReport"><i class="fas fa-file-pdf"></i> Loan Repayment Report</button>
         <button data-page="pageLoanRepaymentStatement"><i class="fas fa-receipt"></i> Loan Statement</button>
@@ -115,7 +116,7 @@
           <div class="hero-metrics">
             <div class="metric-card"><i class="fas fa-users"></i><span id="homeHeroMemberCount">0 active members</span></div>
             <div class="metric-card"><i class="fas fa-coins"></i><span id="homeHeroSavingsCount">Ksh 0 total savings</span></div>
-            <div class="metric-card"><i class="fas fa-file-invoice-dollar"></i><span id="homeHeroLoanCount">No loan records yet</span></div>
+            <div class="metric-card"><i class="fas fa-file-invoice-dollar"></i><span id="homeHeroLoanCount">No active loan</span></div>
           </div>
         </div>
       </div>
@@ -215,6 +216,20 @@
         <button class="btn btn-danger" id="resetSelectedMemberLoanHistoryBtn" type="button"><i class="fas fa-user-slash"></i> Clear Selected Member Loan History</button>
       </div>
       <span id="loanHistoryResetFeedback" class="feedback-badge" style="margin-top:0.5rem; background:#e1f3e8; color:#1a6e4a;">Ready</span>
+    </div>
+  </div>
+
+  <!-- PAGE: ACTIVE LOANS -->
+  <div id="pageActiveLoans" class="page">
+    <div class="card-panel" style="background:#fafcff;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <h3 style="margin:0 0 0.25rem 0;"><i class="fas fa-user-check"></i> Members With Active Loans</h3>
+          <p style="color:#1f4b63; margin:0;">This view lists members whose loans are still active and shows their outstanding balance.</p>
+        </div>
+        <button class="btn btn-danger" id="resetActiveLoansBtn" type="button"><i class="fas fa-broom"></i> Reset</button>
+      </div>
+      <div id="activeLoansList" class="active-loan-list"></div>
     </div>
   </div>
 
@@ -550,6 +565,22 @@
       <h3><i class="fas fa-download"></i> Download Forms</h3>
       <p style="color:#1f4b63; margin-bottom:1.2rem;">Use the buttons below to download the latest uploaded forms.</p>
       <div id="downloadableFormList" class="form-library-list"></div>
+    </div>
+  </div>
+
+  <!-- FORM PREVIEW MODAL -->
+  <div id="formPreviewModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card preview-modal">
+      <div class="modal-header">
+        <h3 id="formPreviewTitle"><i class="fas fa-file-alt"></i> Form Preview</h3>
+        <button class="btn btn-danger" id="closeFormPreviewBtn" type="button"><i class="fas fa-times"></i> Close</button>
+      </div>
+      <div id="formPreviewBody" class="form-preview-body">
+        <div class="feedback-badge" style="background:#eef5fa; color:#1d4a63;">Select a form to preview it here.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-info" id="previewDownloadBtn" type="button"><i class="fas fa-download"></i> Download</button>
+      </div>
     </div>
   </div>
 

@@ -850,7 +850,10 @@
       const totalDev = members.reduce((s, m) => s + m.development, 0);
       const totalFixed = members.reduce((s, m) => s + m.fixedDeposit, 0);
       const allAccounts = totalReg + totalEmerg + totalEdu + totalDev + totalFixed;
-      const loanRecordCount = members.reduce((s, m) => s + (Array.isArray(m.loans) ? m.loans.length : 0), 0);
+      const activeLoanMembersCount = members.filter((member) => {
+        const loans = Array.isArray(member.loans) ? member.loans : [];
+        return loans.some((loan) => String(loan?.status || '').toUpperCase() === 'ACTIVE');
+      }).length;
       document.getElementById('totalMembers').textContent = totalMembers;
       document.getElementById('totalRegFees').textContent = `Ksh ${totalReg.toLocaleString()}`;
       document.getElementById('totalEmergency').textContent = `Ksh ${totalEmerg.toLocaleString()}`;
@@ -870,9 +873,9 @@
         savingsCountEl.textContent = `Ksh ${allAccounts.toLocaleString()} total savings`;
       }
       if (loanCountEl) {
-        loanCountEl.textContent = loanRecordCount > 0
-          ? `${loanRecordCount} loan record${loanRecordCount === 1 ? '' : 's'} ready`
-          : 'No loan records yet';
+        loanCountEl.textContent = activeLoanMembersCount > 0
+          ? `${activeLoanMembersCount} member${activeLoanMembersCount === 1 ? '' : 's'} with active loan${activeLoanMembersCount === 1 ? '' : 's'}`
+          : 'No active loan';
       }
     }
 
@@ -897,6 +900,66 @@
       });
     }
 
+    function getActiveLoanMembers() {
+      return members
+        .filter((member) => {
+          const loans = Array.isArray(member.loans) ? member.loans : [];
+          return loans.some((loan) => String(loan?.status || '').toUpperCase() === 'ACTIVE');
+        })
+        .map((member) => {
+          const activeLoans = (Array.isArray(member.loans) ? member.loans : []).filter((loan) => String(loan?.status || '').toUpperCase() === 'ACTIVE');
+          const outstandingBalance = activeLoans.reduce((total, loan) => total + Number(loan?.totalDue ?? loan?.amount ?? 0), 0);
+          return {
+            ...member,
+            activeLoans,
+            outstandingBalance
+          };
+        });
+    }
+
+    function renderActiveLoansPage() {
+      const container = document.getElementById('activeLoansList');
+      if (!container) return;
+      const activeMembers = getActiveLoanMembers();
+      container.innerHTML = '';
+
+      if (!activeMembers.length) {
+        container.innerHTML = '<div class="feedback-badge" style="background:#eef5fa; color:#1d4a63;">No active loans found.</div>';
+        return;
+      }
+
+      activeMembers.forEach((member) => {
+        const card = document.createElement('div');
+        card.className = 'active-loan-card';
+        const loanCount = member.activeLoans.length;
+        const firstLoan = member.activeLoans[0] || {};
+        card.innerHTML = `
+          <div>
+            <strong>${member.name}</strong>
+            <div class="active-loan-meta"><i class="fas fa-hashtag"></i> ${member.reg}</div>
+            <div class="active-loan-meta"><i class="fas fa-hand-holding-usd"></i> ${loanCount} active loan${loanCount === 1 ? '' : 's'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="active-loan-meta"><i class="fas fa-wallet"></i> Outstanding: Ksh ${Number(member.loanBalance || member.outstandingBalance || 0).toLocaleString()}</div>
+            <div class="active-loan-meta"><i class="fas fa-calendar-alt"></i> Issued: ${firstLoan.dateIssued || 'Not available'}</div>
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    const resetActiveLoansBtn = document.getElementById('resetActiveLoansBtn');
+    if (resetActiveLoansBtn) {
+      resetActiveLoansBtn.addEventListener('click', function() {
+        if (!confirmAdminResetWithPassword('Reset Active Loans View', document.getElementById('activeLoansList')) || !document.getElementById('activeLoansList')) {
+          return;
+        }
+        const container = document.getElementById('activeLoansList');
+        if (container) {
+          container.innerHTML = '<div class="feedback-badge" style="background:#eef5fa; color:#1d4a63;">Active loans list reset.</div>';
+        }
+      });
+    }
+
     function renderAll() {
       renderTable();
       updateSummary();
@@ -907,7 +970,84 @@
       renderBestSaverReportHistory();
       renderLoanRepaymentReportPage();
       renderWithdrawalHistory();
+      renderActiveLoansPage();
       renderFormLibraryLists();
+    }
+
+    let currentPreviewForm = null;
+
+    function closeFormPreviewModal() {
+      const modal = document.getElementById('formPreviewModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      currentPreviewForm = null;
+    }
+
+    function decodeDataUrlText(dataUrl) {
+      if (!dataUrl) return '';
+      const separatorIndex = dataUrl.indexOf(',');
+      if (separatorIndex === -1) return '';
+      const payload = dataUrl.slice(separatorIndex + 1);
+      if (dataUrl.includes(';base64,')) {
+        try {
+          const binary = atob(payload);
+          const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+          return new TextDecoder('utf-8').decode(bytes);
+        } catch (error) {
+          return payload;
+        }
+      }
+      return decodeURIComponent(payload);
+    }
+
+    function triggerDownloadForItem(item) {
+      if (!item) return;
+      const anchor = document.createElement('a');
+      anchor.href = item.dataUrl || '';
+      anchor.download = item.fileName || item.name;
+      anchor.click();
+    }
+
+    function showFormPreview(item) {
+      if (!item) return;
+      currentPreviewForm = item;
+      const modal = document.getElementById('formPreviewModal');
+      const title = document.getElementById('formPreviewTitle');
+      const body = document.getElementById('formPreviewBody');
+      const downloadButton = document.getElementById('previewDownloadBtn');
+      if (!modal || !body || !title) return;
+      title.innerHTML = `<i class="fas fa-file-alt"></i> ${item.name || item.fileName || 'Form Preview'}`;
+      const fileName = String(item.fileName || item.name || 'uploaded-form');
+      const lowerName = fileName.toLowerCase();
+      const dataUrl = item.dataUrl || '';
+      if (dataUrl.startsWith('data:image/')) {
+        const previewImage = document.createElement('img');
+        previewImage.src = dataUrl;
+        previewImage.alt = fileName;
+        previewImage.className = 'preview-media';
+        body.innerHTML = '';
+        body.appendChild(previewImage);
+      } else if (dataUrl.startsWith('data:application/pdf') || lowerName.endsWith('.pdf')) {
+        const previewFrame = document.createElement('iframe');
+        previewFrame.src = dataUrl;
+        previewFrame.title = fileName;
+        body.innerHTML = '';
+        body.appendChild(previewFrame);
+      } else if (dataUrl.startsWith('data:text/') || dataUrl.startsWith('data:application/json') || lowerName.endsWith('.txt') || lowerName.endsWith('.csv') || lowerName.endsWith('.json') || lowerName.endsWith('.md')) {
+        const previewText = document.createElement('pre');
+        previewText.textContent = decodeDataUrlText(dataUrl) || 'No preview data is available for this file.';
+        body.innerHTML = '';
+        body.appendChild(previewText);
+      } else {
+        body.innerHTML = '<div class="feedback-badge" style="background:#eef5fa; color:#1d4a63;">This file type cannot be previewed inline. Download it to view it on your device.</div>';
+      }
+      if (downloadButton) {
+        downloadButton.onclick = function() {
+          triggerDownloadForItem(currentPreviewForm);
+        };
+      }
+      modal.style.display = 'flex';
     }
 
     function renderFormLibraryLists() {
@@ -944,15 +1084,21 @@
         actionGroup.style.gap = '0.5rem';
         actionGroup.style.flexWrap = 'wrap';
 
+        const previewAction = document.createElement('button');
+        previewAction.className = 'btn btn-warning';
+        previewAction.type = 'button';
+        previewAction.textContent = 'Preview';
+        previewAction.addEventListener('click', function() {
+          showFormPreview(item);
+        });
+        actionGroup.appendChild(previewAction);
+
         const downloadAction = document.createElement('button');
         downloadAction.className = 'btn btn-info';
         downloadAction.type = 'button';
         downloadAction.textContent = 'Download';
         downloadAction.addEventListener('click', function() {
-          const anchor = document.createElement('a');
-          anchor.href = item.dataUrl;
-          anchor.download = item.fileName || item.name;
-          anchor.click();
+          triggerDownloadForItem(item);
         });
         actionGroup.appendChild(downloadAction);
 
@@ -2640,6 +2786,7 @@
       pageMembers: document.getElementById('pageMembers'),
       pageRegister: document.getElementById('pageRegister'),
       pageLoan: document.getElementById('pageLoan'),
+      pageActiveLoans: document.getElementById('pageActiveLoans'),
       pageRepayment: document.getElementById('pageRepayment'),
       pageLoanRepaymentReport: document.getElementById('pageLoanRepaymentReport'),
       pageLoanRepaymentStatement: document.getElementById('pageLoanRepaymentStatement'),
@@ -2669,6 +2816,24 @@
       });
     });
     activatePage('pageHome');
+
+    const formPreviewModal = document.getElementById('formPreviewModal');
+    const closeFormPreviewBtn = document.getElementById('closeFormPreviewBtn');
+    if (formPreviewModal) {
+      formPreviewModal.addEventListener('click', function(event) {
+        if (event.target === formPreviewModal) {
+          closeFormPreviewModal();
+        }
+      });
+    }
+    if (closeFormPreviewBtn) {
+      closeFormPreviewBtn.addEventListener('click', closeFormPreviewModal);
+    }
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeFormPreviewModal();
+      }
+    });
 
     // ---------- ADMIN: FORM LIBRARY ----------
     const uploadFormBtn = document.getElementById('adminUploadFormBtn');
