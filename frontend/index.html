@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Kalapatan · Group Loan & Savings</title>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -10,7 +13,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- jsPDF autoTable for tables -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20260720">
 </head>
 <body>
 
@@ -99,8 +102,9 @@
 
       <div id="pageHome" class="page active-page">
         <div class="card-panel home-hero">
+          <div class="hero-background" aria-hidden="true"></div>
           <div class="hero-copy">
-            <p class="eyebrow"><i class="fas fa-house"></i> Today at a glance</p>
+            <p class="eyebrow"><i class="fas fa-house"></i>IDWE KOSI KARIBUNI ORE!</p>
             <h3>Welcome to the Kalapatan dashboard</h3>
             <p>Review member activity, monitor savings, and move loans forward from one guided workspace.</p>
             <div class="hero-actions">
@@ -109,9 +113,9 @@
             </div>
           </div>
           <div class="hero-metrics">
-            <div class="metric-card"><i class="fas fa-users"></i><span>12 active members</span></div>
-            <div class="metric-card"><i class="fas fa-coins"></i><span>Ksh 4,950 total savings</span></div>
-            <div class="metric-card"><i class="fas fa-file-invoice-dollar"></i><span>Loan records ready</span></div>
+            <div class="metric-card"><i class="fas fa-users"></i><span id="homeHeroMemberCount">0 active members</span></div>
+            <div class="metric-card"><i class="fas fa-coins"></i><span id="homeHeroSavingsCount">Ksh 0 total savings</span></div>
+            <div class="metric-card"><i class="fas fa-file-invoice-dollar"></i><span id="homeHeroLoanCount">No loan records yet</span></div>
           </div>
         </div>
       </div>
@@ -596,7 +600,7 @@
     <span><i class="fas fa-database"></i> Group Target: Ksh2,000,000</span>
   </div>
 </div>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=20260720"></script>
 </body>
 </html>
 

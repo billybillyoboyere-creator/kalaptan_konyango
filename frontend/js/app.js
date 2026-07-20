@@ -9,7 +9,9 @@
     let currentRole = '';
     let currentPassword = '';
     let csrfToken = null;
+    let inactivityTimer = null;
     const ADMIN_MEMBER_RESET_PASSWORD = '1234';
+    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
     function isAdminRole(roleValue) {
       const normalizedRole = String(roleValue || '').trim().toLowerCase();
@@ -46,6 +48,76 @@
       }
       updateSidebarToggleState();
     }
+
+    function logoutSession(reason = 'manual') {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+      }
+
+      loginContainer.style.display = 'block';
+      appWrapper.classList.remove('active-app');
+      currentUser = null;
+      currentRole = '';
+      currentPassword = '';
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
+      loginError.style.display = reason === 'inactive' ? 'inline-block' : 'none';
+      loginError.textContent = reason === 'inactive' ? 'You were logged out due to inactivity.' : '';
+      adminTabBtn.style.display = 'none';
+      if (chairmanPasswordCard) chairmanPasswordCard.style.display = 'none';
+      if (selfPasswordCard) selfPasswordCard.style.display = 'none';
+      if (resetMembersBtn) resetMembersBtn.style.display = 'none';
+      const resetHistoryBtn = document.getElementById('resetSavingsHistoryBtn');
+      const resetSelectedMemberHistoryBtn = document.getElementById('resetSelectedMemberHistoryBtn');
+      const historyResetMemberSelect = document.getElementById('historyResetMemberSelect');
+      const resetBestSaverGroupBtn = document.getElementById('resetBestSaverGroupBtn');
+      const resetBestSaverMemberBtn = document.getElementById('resetBestSaverMemberBtn');
+      const bestSaverResetMemberSelect = document.getElementById('bestSaverResetMemberSelect');
+      const loanReportDeleteBtn = document.getElementById('deleteLoanRepaymentRecordsBtn');
+      const loanReportResetBtn = document.getElementById('resetLoanRepaymentReportBtn');
+      const statementResetBtn = document.getElementById('resetStatementBtn');
+      const resetSelectedMemberLoanHistoryBtn = document.getElementById('resetSelectedMemberLoanHistoryBtn');
+      const loanHistoryResetMemberSelect = document.getElementById('loanHistoryResetMemberSelect');
+      if (resetHistoryBtn) resetHistoryBtn.style.display = 'none';
+      if (resetSelectedMemberHistoryBtn) resetSelectedMemberHistoryBtn.style.display = 'none';
+      if (historyResetMemberSelect) historyResetMemberSelect.style.display = 'none';
+      if (resetBestSaverGroupBtn) resetBestSaverGroupBtn.style.display = 'none';
+      if (resetBestSaverMemberBtn) resetBestSaverMemberBtn.style.display = 'none';
+      if (bestSaverResetMemberSelect) bestSaverResetMemberSelect.style.display = 'none';
+      if (loanReportDeleteBtn) loanReportDeleteBtn.style.display = 'none';
+      if (loanReportResetBtn) loanReportResetBtn.style.display = 'none';
+      if (statementResetBtn) statementResetBtn.style.display = 'none';
+      if (resetSelectedMemberLoanHistoryBtn) resetSelectedMemberLoanHistoryBtn.style.display = 'none';
+      if (loanHistoryResetMemberSelect) loanHistoryResetMemberSelect.style.display = 'none';
+    }
+
+    function resetInactivityTimer() {
+      if (!appWrapper.classList.contains('active-app') || !currentUser) {
+        return;
+      }
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+      inactivityTimer = setTimeout(function() {
+        logoutSession('inactive');
+      }, INACTIVITY_TIMEOUT_MS);
+    }
+
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'input'].forEach(function(eventName) {
+      window.addEventListener(eventName, resetInactivityTimer, true);
+    });
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        if (inactivityTimer) {
+          clearTimeout(inactivityTimer);
+          inactivityTimer = null;
+        }
+      } else if (appWrapper.classList.contains('active-app') && currentUser) {
+        resetInactivityTimer();
+      }
+    });
 
     if (toggleSidebarBtn) {
       toggleSidebarBtn.addEventListener('click', function() {
@@ -141,6 +213,7 @@
           if (statementResetBtn) statementResetBtn.style.display = 'none';
         }
 
+        resetInactivityTimer();
         renderAll();
       } catch (error) {
         loginError.style.display = 'inline-block';
@@ -149,36 +222,7 @@
     });
 
     document.getElementById('logoutBtn').addEventListener('click', function() {
-      loginContainer.style.display = 'block';
-      appWrapper.classList.remove('active-app');
-      currentUser = null;
-      currentRole = '';
-      currentPassword = '';
-      document.getElementById('loginUser').value = '';
-      document.getElementById('loginPass').value = '';
-      loginError.style.display = 'none';
-      adminTabBtn.style.display = 'none';
-      if (chairmanPasswordCard) chairmanPasswordCard.style.display = 'none';
-      if (selfPasswordCard) selfPasswordCard.style.display = 'none';
-      if (resetMembersBtn) resetMembersBtn.style.display = 'none';
-      const resetHistoryBtn = document.getElementById('resetSavingsHistoryBtn');
-      const resetSelectedMemberHistoryBtn = document.getElementById('resetSelectedMemberHistoryBtn');
-      const historyResetMemberSelect = document.getElementById('historyResetMemberSelect');
-      const resetBestSaverGroupBtn = document.getElementById('resetBestSaverGroupBtn');
-      const resetBestSaverMemberBtn = document.getElementById('resetBestSaverMemberBtn');
-      const bestSaverResetMemberSelect = document.getElementById('bestSaverResetMemberSelect');
-      const loanReportDeleteBtn = document.getElementById('deleteLoanRepaymentRecordsBtn');
-      const loanReportResetBtn = document.getElementById('resetLoanRepaymentReportBtn');
-      const statementResetBtn = document.getElementById('resetStatementBtn');
-      if (resetHistoryBtn) resetHistoryBtn.style.display = 'none';
-      if (resetSelectedMemberHistoryBtn) resetSelectedMemberHistoryBtn.style.display = 'none';
-      if (historyResetMemberSelect) historyResetMemberSelect.style.display = 'none';
-      if (resetBestSaverGroupBtn) resetBestSaverGroupBtn.style.display = 'none';
-      if (resetBestSaverMemberBtn) resetBestSaverMemberBtn.style.display = 'none';
-      if (bestSaverResetMemberSelect) bestSaverResetMemberSelect.style.display = 'none';
-      if (loanReportDeleteBtn) loanReportDeleteBtn.style.display = 'none';
-      if (loanReportResetBtn) loanReportResetBtn.style.display = 'none';
-      if (statementResetBtn) statementResetBtn.style.display = 'none';
+      logoutSession('manual');
     });
 
     // ---------- ADMIN: CHANGE PASSWORDS ----------
@@ -806,6 +850,7 @@
       const totalDev = members.reduce((s, m) => s + m.development, 0);
       const totalFixed = members.reduce((s, m) => s + m.fixedDeposit, 0);
       const allAccounts = totalReg + totalEmerg + totalEdu + totalDev + totalFixed;
+      const loanRecordCount = members.reduce((s, m) => s + (Array.isArray(m.loans) ? m.loans.length : 0), 0);
       document.getElementById('totalMembers').textContent = totalMembers;
       document.getElementById('totalRegFees').textContent = `Ksh ${totalReg.toLocaleString()}`;
       document.getElementById('totalEmergency').textContent = `Ksh ${totalEmerg.toLocaleString()}`;
@@ -813,6 +858,22 @@
       document.getElementById('totalFixed').textContent = `Ksh ${totalFixed}`;
       document.getElementById('totalDevelopment').textContent = `Ksh ${totalDev.toLocaleString()}`;
       document.getElementById('totalAll').textContent = `Ksh ${allAccounts.toLocaleString()}`;
+
+      const memberCountEl = document.getElementById('homeHeroMemberCount');
+      const savingsCountEl = document.getElementById('homeHeroSavingsCount');
+      const loanCountEl = document.getElementById('homeHeroLoanCount');
+
+      if (memberCountEl) {
+        memberCountEl.textContent = `${totalMembers} active member${totalMembers === 1 ? '' : 's'}`;
+      }
+      if (savingsCountEl) {
+        savingsCountEl.textContent = `Ksh ${allAccounts.toLocaleString()} total savings`;
+      }
+      if (loanCountEl) {
+        loanCountEl.textContent = loanRecordCount > 0
+          ? `${loanRecordCount} loan record${loanRecordCount === 1 ? '' : 's'} ready`
+          : 'No loan records yet';
+      }
     }
 
     function populateSelects() {

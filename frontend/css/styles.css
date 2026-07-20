@@ -3,22 +3,13 @@
       padding: 0;
       box-sizing: border-box;
       font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-      scrollbar-width: thin;
-      scrollbar-color: #5b86a5 #eef4f9;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
     *::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    *::-webkit-scrollbar-track {
-      background: #eef4f9;
-      border-radius: 999px;
-    }
-    *::-webkit-scrollbar-thumb {
-      background: #5b86a5;
-      border-radius: 999px;
-      border: 2px solid transparent;
-      background-clip: padding-box;
+      width: 0;
+      height: 0;
+      display: none;
     }
     html {
       font-size: 16px;
@@ -654,10 +645,37 @@
 
     .home-hero {
       display: grid;
-      grid-template-columns: 1.4fr 1fr;
+      grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.9fr);
       gap: 1rem;
-      align-items: center;
+      align-items: start;
       background: linear-gradient(135deg, #f7fbff 0%, #e8f2f9 100%);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      min-height: clamp(260px, calc(100vh - 16rem), 380px);
+      padding: 1.3rem 1.6rem 1.1rem;
+      margin-bottom: 0;
+      border-radius: 1.35rem;
+    }
+    .hero-background {
+      position: absolute;
+      inset: 0;
+      background-image: url('../assets/home.jpg');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.28;
+      z-index: 0;
+      transform: scale(1.03);
+    }
+    .hero-copy,
+    .hero-metrics {
+      position: relative;
+      z-index: 1;
+      align-self: start;
+      margin-top: 0.25rem;
+    }
+    .hero-metrics {
+      margin-top: 0.4rem;
     }
     .eyebrow {
       display: inline-flex;
