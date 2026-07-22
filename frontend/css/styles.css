@@ -607,6 +607,234 @@
       display: inline-block;
     }
 
+    .graphs-dashboard {
+      background: linear-gradient(180deg, #f4fbff 0%, #eef7fb 100%);
+      border-radius: 2rem;
+      padding: 1.4rem;
+      border: 1px solid #d8e7f3;
+      box-shadow: 0 24px 60px rgba(18, 62, 101, 0.08);
+      margin-bottom: 1.5rem;
+    }
+    .dashboard-grid-top {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .dashboard-metrics-stack {
+      display: grid;
+      gap: 0.9rem;
+    }
+    .dashboard-main-charts {
+      display: grid;
+      grid-template-columns: 1.55fr 0.95fr;
+      gap: 0.9rem;
+      align-items: start;
+    }
+    .dashboard-mini-charts-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+    .dashboard-grid-bottom {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(240px, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .two-column-bottom {
+      grid-template-columns: repeat(2, minmax(240px, 1fr));
+    }
+    .graph-card-large {
+      min-height: 280px;
+    }
+    .compact-card {
+      min-height: 170px;
+    }
+    .graph-control-card {
+      min-height: auto;
+    }
+    .summary-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-radius: 1.4rem;
+      padding: 1.3rem 1.2rem;
+      color: white;
+      min-height: 120px;
+      box-shadow: 0 14px 26px rgba(10, 44, 79, 0.1);
+    }
+    .summary-card strong {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    .summary-card span {
+      font-size: 0.92rem;
+      opacity: 0.9;
+    }
+    .blue-card { background: linear-gradient(135deg, #1f6ecb 0%, #1551a7 100%); }
+    .green-card { background: linear-gradient(135deg, #158260 0%, #1da47b 100%); }
+    .lime-card { background: linear-gradient(135deg, #6caa34 0%, #9cc25e 100%); }
+    .orange-card { background: linear-gradient(135deg, #df7d1f 0%, #f1a443 100%); }
+    .red-card { background: linear-gradient(135deg, #c93f3f 0%, #e47f5f 100%); }
+    .graph-card, .graph-control-card {
+      background: white;
+      border-radius: 1.4rem;
+      padding: 1.1rem;
+      border: 1px solid #dce9f2;
+      box-shadow: 0 12px 20px rgba(20, 60, 95, 0.04);
+    }
+    .graph-card-large {
+      min-height: 460px;
+    }
+    .compact-card {
+      min-height: 190px;
+    }
+    .graph-card h4,
+    .graph-control-card h4 {
+      margin: 0 0 0.9rem;
+      font-size: 1rem;
+      color: #173d5a;
+      font-weight: 700;
+    }
+    .graph-control-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.8rem;
+      align-items: end;
+    }
+    .compact-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.8rem;
+      align-items: end;
+    }
+    @media (min-width: 980px) {
+      .graph-control-list,
+      .compact-controls {
+        grid-template-columns: repeat(5, minmax(180px, 1fr));
+      }
+    }
+    .graph-control-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      color: #1d4f6e;
+      font-weight: 500;
+      margin-bottom: 0;
+    }
+    #graphsMemberFilterInput {
+      width: 100%;
+    }
+    .graph-control-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.9rem;
+      color: #1d4f6e;
+      font-weight: 500;
+    }
+    .graph-control-input {
+      padding: 0.75rem 1rem;
+      border-radius: 28px;
+      border: 1px solid #cbdce9;
+      background: #fbfeff;
+      color: #0e324c;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      min-width: 0;
+    }
+    .graph-control-input:focus {
+      border-color: #6fb1de;
+      box-shadow: 0 0 0 3px rgba(111, 177, 222, 0.16);
+    }
+    .graph-control-select {
+      width: 100%;
+    }
+    .traffic-pie-placeholder,
+    .visitor-bars-placeholder,
+    .mini-chart-placeholder {
+      min-height: 140px;
+      background: #eef7fd;
+      border-radius: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4d6e85;
+      font-size: 0.95rem;
+      border: 1px dashed #c9dce8;
+    }
+    .graph-commentary-row {
+      margin-top: 0.5rem;
+    }
+    .graph-commentary {
+      padding: 0.9rem 1rem;
+      background: #eef7f2;
+      border-radius: 1.1rem;
+      border: 1px solid #cfe8de;
+      color: #114f44;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      min-height: 120px;
+    }
+    #pageGraphs #graphsCanvas {
+      width: 100% !important;
+      height: 320px !important;
+      border: none !important;
+      background: linear-gradient(180deg, #f9fbff 0%, #eef5fc 100%) !important;
+      border-radius: 24px !important;
+      box-shadow: inset 0 0 0 1px rgba(49, 110, 164, 0.08);
+    }
+    #pageGraphs canvas {
+      border-radius: 20px;
+      background: linear-gradient(180deg, #f9fbff 0%, #eef5fc 100%);
+      box-shadow: inset 0 0 0 1px rgba(49, 110, 164, 0.08);
+    }
+    @media (max-width: 1140px) {
+      .dashboard-grid-top,
+      .dashboard-grid-bottom {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 680px) {
+      .dashboard-metrics-stack,
+      .graph-control-list,
+      .compact-controls,
+      .graph-control-shortcuts,
+      .dashboard-mini-charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .graph-commentary {
+      padding: 1.3rem 1.4rem;
+      border-radius: 1.8rem;
+      background: #eaf7f1;
+      color: #12534d;
+      font-size: 0.98rem;
+      line-height: 1.7;
+      border: 1px solid #cfe7dd;
+      margin-top: 1rem;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+    }
+    #pageGraphs #graphsCanvas {
+      width: 100% !important;
+      height: 320px !important;
+      border: none !important;
+      background: linear-gradient(180deg, #f9fbff 0%, #eef5fc 100%) !important;
+      border-radius: 24px !important;
+      box-shadow: inset 0 0 0 1px rgba(49, 110, 164, 0.08);
+    }
+    @media (min-width: 960px) {
+      .graph-layout-grid {
+        grid-template-columns: 1.25fr 0.75fr;
+      }
+    }
+
     .table-wrapper {
       overflow-x: auto;
       overflow-y: scroll;

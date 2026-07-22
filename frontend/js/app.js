@@ -11,6 +11,7 @@
     let csrfToken = null;
     let inactivityTimer = null;
     const ADMIN_MEMBER_RESET_PASSWORD = '1234';
+    const ADMIN_DEFAULT_PASSWORD = '34717215';
     const INACTIVITY_TIMEOUT_MS = 7 * 60 * 1000;
 
     function isAdminRole(roleValue) {
@@ -214,6 +215,7 @@
         }
 
         resetInactivityTimer();
+        await refreshMembersFromApi();
         renderAll();
       } catch (error) {
         loginError.style.display = 'inline-block';
@@ -251,6 +253,31 @@
         document.getElementById('adminNewPassword').value = '';
       } catch (error) {
         fb.textContent = error.message || 'Warning: Password update failed.';
+        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+      }
+    });
+
+    document.getElementById('adminResetDefaultPasswordBtn').addEventListener('click', async function() {
+      const userSelect = document.getElementById('adminUserSelect').value;
+      const fb = document.getElementById('adminFeedback');
+      if (!window.confirm(`Reset ${userSelect}'s password back to the default value?`)) {
+        return;
+      }
+      try {
+        await requestJson('/api/auth/password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Name': currentUser || '',
+            'X-User-Role': currentRole || ''
+          },
+          body: JSON.stringify({ username: userSelect, password: ADMIN_DEFAULT_PASSWORD })
+        });
+        validUsers[userSelect].password = ADMIN_DEFAULT_PASSWORD;
+        fb.innerHTML = `<i class="fas fa-check-circle"></i> Success: ${userSelect}'s password has been reset to the default value.`;
+        fb.style.background = '#ddf0e5'; fb.style.color = '#1a6e4a';
+      } catch (error) {
+        fb.textContent = error.message || 'Warning: Password reset failed.';
         fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
       }
     });
@@ -506,6 +533,8 @@
     let chargesHistory = Array.isArray(restoredState.chargesHistory) ? restoredState.chargesHistory : [];
     let savingsHistory = normalizeSavingsHistory(restoredState.savingsHistory);
     let bestSaverRankings = makeEmptyBestSaverRankings();
+    let graphsShowAllMembers = false;
+    // Graph viewer simplified: only show top members and core chart controls.
     let bestSaverReportHistory = normalizeBestSaverReportHistory(restoredState.bestSaverReportHistory);
     let loanRepaymentHistory = normalizeLoanRepaymentHistory(restoredState.loanRepaymentHistory);
     let loanRepaymentReportHistory = normalizeLoanRepaymentReportHistory(restoredState.loanRepaymentReportHistory);
@@ -884,7 +913,7 @@
     }
 
     function populateSelects() {
-      const selects = ['loanMemberSelect', 'defaultMemberSelect', 'updateMemberSelect', 'repayMemberSelect', 'withdrawMemberSelect', 'chargeMemberSelect', 'historyResetMemberSelect', 'bestSaverResetMemberSelect', 'loanHistoryResetMemberSelect', 'statementMemberSelect'];
+      const selects = ['loanMemberSelect', 'defaultMemberSelect', 'updateMemberSelect', 'repayMemberSelect', 'chargeMemberSelect', 'withdrawMemberSelect', 'historyResetMemberSelect', 'bestSaverResetMemberSelect', 'loanHistoryResetMemberSelect', 'statementMemberSelect'];
       selects.forEach(id => {
         const sel = document.getElementById(id);
         if (!sel) return;
@@ -970,12 +999,46 @@
       populateSelects();
       renderChargesHistory();
       renderSavingsHistoryDashboard();
+      renderGraphsPage();
       renderBestSaverLeaderboard();
       renderBestSaverReportHistory();
       renderLoanRepaymentReportPage();
       renderWithdrawalHistory();
       renderActiveLoansPage();
       renderFormLibraryLists();
+    }
+
+    function attachGraphControls() {
+      const controls = ['graphsTypeSelect', 'graphsPeriodSelect'];
+      controls.forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.addEventListener('change', renderGraphsPage);
+          element.addEventListener('input', renderGraphsPage);
+        }
+      });
+    }
+
+    function setupGraphsAutoResize() {
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(renderGraphsPage, 120);
+      });
+
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(() => renderGraphsPage());
+        const canvas = document.getElementById('graphsCanvas');
+        if (canvas?.parentElement) {
+          observer.observe(canvas.parentElement);
+        }
+        ['graphsBounceLineChart'].forEach((id) => {
+          const chart = document.getElementById(id);
+          if (chart?.parentElement) {
+            observer.observe(chart.parentElement);
+          }
+        });
+      }
     }
 
     let currentPreviewForm = null;
@@ -1841,121 +1904,137 @@
     });
 
     // ---------- WITHDRAWAL ----------
-    document.getElementById('withdrawMemberSelect').addEventListener('change', updateAvailableBalance);
-    document.getElementById('withdrawAccountSelect').addEventListener('change', updateAvailableBalance);
+    const withdrawMemberSelect = document.getElementById('withdrawMemberSelect');
+    const withdrawAccountSelect = document.getElementById('withdrawAccountSelect');
+    const withdrawalAmountInput = document.getElementById('withdrawalAmount');
+    const withdrawFeedback = document.getElementById('withdrawalFeedback');
+    const withdrawalPdfFeedback = document.getElementById('withdrawalPdfFeedback');
+    const withdrawAmountDisplay = document.getElementById('availableBalanceDisplay');
+
+    if (withdrawMemberSelect && withdrawAccountSelect) {
+      withdrawMemberSelect.addEventListener('change', updateAvailableBalance);
+      withdrawAccountSelect.addEventListener('change', updateAvailableBalance);
+    }
 
     function updateAvailableBalance() {
-      const memberIdx = parseInt(document.getElementById('withdrawMemberSelect').value, 10);
-      const account = document.getElementById('withdrawAccountSelect').value;
-      if (isNaN(memberIdx) || memberIdx < 0 || memberIdx >= members.length) return;
+      if (!withdrawMemberSelect || !withdrawAccountSelect || !withdrawAmountDisplay) return;
+      const memberIdx = parseInt(withdrawMemberSelect.value, 10);
+      const account = withdrawAccountSelect.value;
+      if (isNaN(memberIdx) || memberIdx < 0 || memberIdx >= members.length) {
+        withdrawAmountDisplay.value = 'Ksh 0';
+        return;
+      }
       const member = members[memberIdx];
       let balance = 0;
       if (account === 'emergency') balance = member.emergency;
       else if (account === 'education') balance = member.education;
       else if (account === 'development') balance = member.development;
       else if (account === 'fixedDeposit') balance = member.fixedDeposit || 0;
-      document.getElementById('availableBalanceDisplay').value = `Ksh ${balance}`;
+      withdrawAmountDisplay.value = `Ksh ${balance}`;
     }
 
-    document.getElementById('requestWithdrawalBtn').addEventListener('click', async function() {
-      const memberIdx = parseInt(document.getElementById('withdrawMemberSelect').value, 10);
-      const account = document.getElementById('withdrawAccountSelect').value;
-      const amount = parseFloat(document.getElementById('withdrawalAmount').value) || 0;
-      const fb = document.getElementById('withdrawalFeedback');
-      if (isNaN(memberIdx) || memberIdx < 0 || memberIdx >= members.length) {
-        fb.textContent = 'Warning: Select a valid member.';
-        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
-        return;
-      }
-      if (amount <= 0) {
-        fb.textContent = 'Warning: Withdrawal amount must be greater than 0.';
-        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
-        return;
-      }
-      const member = members[memberIdx];
-      let availableBalance = 0;
-      if (account === 'emergency') availableBalance = member.emergency;
-      else if (account === 'education') availableBalance = member.education;
-      else if (account === 'development') availableBalance = member.development;
-      else if (account === 'fixedDeposit') availableBalance = member.fixedDeposit || 0;
-      if (amount > availableBalance) {
-        fb.textContent = `Warning: Insufficient balance. Available: Ksh ${availableBalance}`;
-        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
-        return;
-      }
-      const enteredPassword = window.prompt('Enter your current login password to confirm this withdrawal request.');
-      if (enteredPassword === null) {
-        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Withdrawal request cancelled.';
-        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
-        return;
-      }
-      if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser]?.password || '')) {
-        fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Withdrawal request blocked: incorrect password.';
-        fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
-        return;
-      }
+    if (document.getElementById('requestWithdrawalBtn')) {
+      document.getElementById('requestWithdrawalBtn').addEventListener('click', async function() {
+        if (!withdrawMemberSelect || !withdrawAccountSelect || !withdrawalAmountInput || !withdrawFeedback) return;
+        const memberIdx = parseInt(withdrawMemberSelect.value, 10);
+        const account = withdrawAccountSelect.value;
+        const amount = parseFloat(withdrawalAmountInput.value) || 0;
+        const fb = withdrawFeedback;
+        if (isNaN(memberIdx) || memberIdx < 0 || memberIdx >= members.length) {
+          fb.textContent = 'Warning: Select a valid member.';
+          fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+          return;
+        }
+        if (amount <= 0) {
+          fb.textContent = 'Warning: Withdrawal amount must be greater than 0.';
+          fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+          return;
+        }
+        const member = members[memberIdx];
+        let availableBalance = 0;
+        if (account === 'emergency') availableBalance = member.emergency;
+        else if (account === 'education') availableBalance = member.education;
+        else if (account === 'development') availableBalance = member.development;
+        else if (account === 'fixedDeposit') availableBalance = member.fixedDeposit || 0;
+        if (amount > availableBalance) {
+          fb.textContent = `Warning: Insufficient balance. Available: Ksh ${availableBalance}`;
+          fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+          return;
+        }
+        const enteredPassword = window.prompt('Enter your current login password to confirm this withdrawal request.');
+        if (enteredPassword === null) {
+          fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Withdrawal request cancelled.';
+          fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+          return;
+        }
+        if (String(enteredPassword) !== String(currentPassword || validUsers[currentUser]?.password || '')) {
+          fb.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Withdrawal request blocked: incorrect password.';
+          fb.style.background = '#fde8e8'; fb.style.color = '#a13d3d';
+          return;
+        }
 
-      const accountLabels = {
-        emergency: 'Emergency Fund',
-        education: 'Education Fund',
-        development: 'Development Fund',
-        fixedDeposit: 'Fixed Deposit'
-      };
-      const statementTimestamp = new Date().toISOString();
+        const accountLabels = {
+          emergency: 'Emergency Fund',
+          education: 'Education Fund',
+          development: 'Development Fund',
+          fixedDeposit: 'Fixed Deposit'
+        };
+        const statementTimestamp = new Date().toISOString();
 
-      if (account === 'emergency') member.emergency -= amount;
-      else if (account === 'education') member.education -= amount;
-      else if (account === 'development') member.development -= amount;
-      else if (account === 'fixedDeposit') member.fixedDeposit = Math.max(0, (member.fixedDeposit || 0) - amount);
-      member.totalSavings = member.emergency + member.education + member.development + member.fixedDeposit;
+        if (account === 'emergency') member.emergency -= amount;
+        else if (account === 'education') member.education -= amount;
+        else if (account === 'development') member.development -= amount;
+        else if (account === 'fixedDeposit') member.fixedDeposit = Math.max(0, (member.fixedDeposit || 0) - amount);
+        member.totalSavings = member.emergency + member.education + member.development + member.fixedDeposit;
 
-      const entry = {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        memberId: member.id || memberIdx + 1,
-        memberName: member.name,
-        memberReg: member.reg,
-        account,
-        accountLabel: accountLabels[account] || account,
-        amount,
-        balanceBefore: availableBalance,
-        balanceAfter: availableBalance - amount,
-        timestamp: statementTimestamp
-      };
-      withdrawalHistory.unshift(entry);
-      withdrawalHistory = normalizeWithdrawalHistory(withdrawalHistory);
+        const entry = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          memberId: member.id || memberIdx + 1,
+          memberName: member.name,
+          memberReg: member.reg,
+          account,
+          accountLabel: accountLabels[account] || account,
+          amount,
+          balanceBefore: availableBalance,
+          balanceAfter: availableBalance - amount,
+          timestamp: statementTimestamp
+        };
+        withdrawalHistory.unshift(entry);
+        withdrawalHistory = normalizeWithdrawalHistory(withdrawalHistory);
 
-      try {
-        await requestJson('/api/withdrawal-statements', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            member_id: entry.memberId,
-            memberName: entry.memberName,
-            memberReg: entry.memberReg,
-            account: entry.account,
-            accountLabel: entry.accountLabel,
-            amount: entry.amount,
-            balanceBefore: entry.balanceBefore,
-            balanceAfter: entry.balanceAfter,
-            timestamp: entry.timestamp
-          })
-        });
-      } catch (error) {
-        console.warn('Unable to save withdrawal statement to API; keeping local state.', error);
-      }
+        try {
+          await requestJson('/api/withdrawal-statements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              member_id: entry.memberId,
+              memberName: entry.memberName,
+              memberReg: entry.memberReg,
+              account: entry.account,
+              accountLabel: entry.accountLabel,
+              amount: entry.amount,
+              balanceBefore: entry.balanceBefore,
+              balanceAfter: entry.balanceAfter,
+              timestamp: entry.timestamp
+            })
+          });
+        } catch (error) {
+          console.warn('Unable to save withdrawal statement to API; keeping local state.', error);
+        }
 
-      fb.innerHTML = `<i class="fas fa-check-circle"></i> Success: Withdrawal request approved: Ksh ${amount} from ${account} fund. New balance: Ksh ${availableBalance - amount}`;
-      fb.style.background = '#ddf0e5'; fb.style.color = '#1a6e4a';
-      document.getElementById('withdrawalAmount').value = '0';
-      updateAvailableBalance();
-      persistState();
-      renderAll();
-    });
+        fb.innerHTML = `<i class="fas fa-check-circle"></i> Success: Withdrawal request approved: Ksh ${amount} from ${account} fund. New balance: Ksh ${availableBalance - amount}`;
+        fb.style.background = '#ddf0e5'; fb.style.color = '#1a6e4a';
+        withdrawalAmountInput.value = '0';
+        updateAvailableBalance();
+        persistState();
+        renderAll();
+      });
+    }
 
-    const resetWithdrawalHistoryBtn = document.getElementById('resetWithdrawalHistoryBtn');
-    if (resetWithdrawalHistoryBtn) {
-      resetWithdrawalHistoryBtn.addEventListener('click', async function() {
-        const fb = document.getElementById('withdrawalFeedback');
+    if (document.getElementById('resetWithdrawalHistoryBtn')) {
+      document.getElementById('resetWithdrawalHistoryBtn').addEventListener('click', async function() {
+        if (!withdrawFeedback) return;
+        const fb = withdrawFeedback;
         if (!withdrawalHistory.length) {
           fb.textContent = 'No withdrawal statements are available to reset.';
           fb.style.background = '#fef3c7';
@@ -1982,89 +2061,92 @@
       });
     }
 
-    document.getElementById('exportWithdrawalStatementBtn').addEventListener('click', function() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('portrait', 'mm', 'a4');
-      const pdfFeedback = document.getElementById('withdrawalPdfFeedback');
-      const entries = [...withdrawalHistory].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    if (document.getElementById('exportWithdrawalStatementBtn')) {
+      document.getElementById('exportWithdrawalStatementBtn').addEventListener('click', function() {
+        if (!withdrawalPdfFeedback) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('portrait', 'mm', 'a4');
+        const pdfFeedback = document.getElementById('withdrawalPdfFeedback');
+        const entries = [...withdrawalHistory].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
-      if (!entries.length) {
-        if (pdfFeedback) {
-          pdfFeedback.textContent = 'No withdrawal statements are available for export yet.';
-          pdfFeedback.style.background = '#fde8e8';
-          pdfFeedback.style.color = '#a13d3d';
+        if (!entries.length) {
+          if (pdfFeedback) {
+            pdfFeedback.textContent = 'No withdrawal statements are available for export yet.';
+            pdfFeedback.style.background = '#fde8e8';
+            pdfFeedback.style.color = '#a13d3d';
+          }
+          return;
         }
-        return;
-      }
 
-      doc.setFillColor(11, 42, 59);
-      doc.rect(0, 0, 210, 30, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text('KALAPATAN KONYANGO SELF HELP GROUP', 105, 12, { align: 'center' });
-      doc.setFontSize(12);
-      doc.text('WITHDRAWAL STATEMENT HISTORY', 105, 20, { align: 'center' });
+        doc.setFillColor(11, 42, 59);
+        doc.rect(0, 0, 210, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('KALAPATAN KONYANGO SELF HELP GROUP', 105, 12, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text('WITHDRAWAL STATEMENT HISTORY', 105, 20, { align: 'center' });
 
-      doc.setTextColor(11, 42, 59);
-      doc.setFontSize(11);
-      doc.setFont(undefined, 'bold');
-      doc.text('Generated: ' + new Date().toLocaleString(), 15, 40);
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(10);
+        doc.setTextColor(11, 42, 59);
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text('Generated: ' + new Date().toLocaleString(), 15, 40);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
 
-      const tableRows = entries.map((entry) => [
-        entry.memberName || 'Member',
-        entry.memberReg || '—',
-        entry.accountLabel || entry.account || 'Savings account',
-        `Ksh ${Number(entry.amount || 0).toLocaleString()}`,
-        `Ksh ${Number(entry.balanceBefore || 0).toLocaleString()}`,
-        `Ksh ${Number(entry.balanceAfter || 0).toLocaleString()}`,
-        new Date(entry.timestamp || new Date().toISOString()).toLocaleString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      ]);
+        const tableRows = entries.map((entry) => [
+          entry.memberName || 'Member',
+          entry.memberReg || '—',
+          entry.accountLabel || entry.account || 'Savings account',
+          `Ksh ${Number(entry.amount || 0).toLocaleString()}`,
+          `Ksh ${Number(entry.balanceBefore || 0).toLocaleString()}`,
+          `Ksh ${Number(entry.balanceAfter || 0).toLocaleString()}`,
+          new Date(entry.timestamp || new Date().toISOString()).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        ]);
 
-      doc.autoTable({
-        head: [['Member Name', 'Reg No', 'Account', 'Amount', 'Balance Before', 'Balance After', 'Date & Time']],
-        body: tableRows,
-        startY: 48,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [11, 42, 59], textColor: [255, 255, 255] },
-        columnStyles: {
-          0: { cellWidth: 34 },
-          1: { cellWidth: 22 },
-          2: { cellWidth: 28 },
-          3: { cellWidth: 24 },
-          4: { cellWidth: 24 },
-          5: { cellWidth: 24 },
-          6: { cellWidth: 38 }
-        },
-        margin: { left: 10, right: 10 },
-        alternateRowStyles: { fillColor: [246, 250, 255] }
+        doc.autoTable({
+          head: [['Member Name', 'Reg No', 'Account', 'Amount', 'Balance Before', 'Balance After', 'Date & Time']],
+          body: tableRows,
+          startY: 48,
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [11, 42, 59], textColor: [255, 255, 255] },
+          columnStyles: {
+            0: { cellWidth: 34 },
+            1: { cellWidth: 22 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 24 },
+            4: { cellWidth: 24 },
+            5: { cellWidth: 24 },
+            6: { cellWidth: 38 }
+          },
+          margin: { left: 10, right: 10 },
+          alternateRowStyles: { fillColor: [246, 250, 255] }
+        });
+
+        addDateStamp(doc, {
+          x: 100,
+          y: 245,
+          width: 70,
+          height: 36,
+          margin: 8,
+          placement: 'bottom-right',
+          dateText: formatReportDate()
+        }, function() {
+          doc.save(`Withdrawal_Statements_${new Date().toISOString().slice(0, 10)}.pdf`);
+          if (pdfFeedback) {
+            pdfFeedback.textContent = `Exported ${entries.length} withdrawal statement(s) to PDF.`;
+            pdfFeedback.style.background = '#ddf0e5';
+            pdfFeedback.style.color = '#1a6e4a';
+          }
+        });
       });
-
-      addDateStamp(doc, {
-        x: 100,
-        y: 245,
-        width: 70,
-        height: 36,
-        margin: 8,
-        placement: 'bottom-right',
-        dateText: formatReportDate()
-      }, function() {
-        doc.save(`Withdrawal_Statements_${new Date().toISOString().slice(0, 10)}.pdf`);
-        if (pdfFeedback) {
-          pdfFeedback.textContent = `Exported ${entries.length} withdrawal statement(s) to PDF.`;
-          pdfFeedback.style.background = '#ddf0e5';
-          pdfFeedback.style.color = '#1a6e4a';
-        }
-      });
-    });
+    }
 
     // ---------- CHARGES ----------
     function renderChargesHistory() {
@@ -2158,6 +2240,464 @@
       }).join('');
 
       dashboard.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">${html}</div>`;
+    }
+
+    function formatKsh(amount) {
+      return `Ksh ${Number(amount || 0).toLocaleString()}`;
+    }
+
+    function getGraphCommentary(totals) {
+      const positiveAccounts = ['emergency', 'education', 'development', 'fixedDeposit'].filter((key) => totals[key] > 0).length;
+      const strength = totals.emergency + totals.education + totals.development + totals.fixedDeposit;
+      const savingsGrowth = savingsHistory.monthly?.total || 0;
+      if (positiveAccounts === 4 && strength >= 15000 && savingsGrowth >= 2000) {
+        return 'The group is moving in the right direction: all main accounts are positive and monthly savings look healthy.';
+      }
+      if (positiveAccounts >= 3 && strength >= 8000) {
+        return 'The room is heading toward a stronger position, but continue growing savings in the remaining account areas.';
+      }
+      return 'The group needs to build more momentum: focus on balanced deposits across emergency, education, fixed deposit and development.';
+    }
+
+    function getSortedFilteredMembers() {
+      const list = [...members];
+      list.sort((a, b) => (Number(b.totalSavings || 0) - Number(a.totalSavings || 0)));
+      return list;
+    }
+
+    function aggregateSavingsByMember(entries) {
+      const totals = {};
+      (Array.isArray(entries) ? entries : []).forEach((entry) => {
+        const name = String(entry.memberName || entry.name || 'Unknown').trim();
+        const amount = Number(entry.amount || entry.total || 0);
+        totals[name] = (totals[name] || 0) + amount;
+      });
+      return totals;
+    }
+
+    function filterEntriesByName(entries, filterText) {
+      if (!filterText) return Array.isArray(entries) ? entries : [];
+      return (Array.isArray(entries) ? entries : []).filter((entry) => {
+        const name = String(entry.memberName || entry.name || '').trim().toLowerCase();
+        return name.includes(filterText);
+      });
+    }
+
+    function sortMemberTotals(items, sortValue) {
+      if (sortValue === 'nameAsc') {
+        return items.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+      }
+      if (sortValue === 'balanceAsc') {
+        return items.sort((a, b) => Number(a[1]) - Number(b[1]));
+      }
+      return items.sort((a, b) => Number(b[1]) - Number(a[1]));
+    }
+
+    function drawGraphsCanvas(chartType, labels, values) {
+      const canvas = document.getElementById('graphsCanvas');
+      if (!canvas || !canvas.getContext) return;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.clientWidth || 760;
+      const height = canvas.clientHeight || 430;
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const padding = 48;
+      const left = padding;
+      const right = width - padding;
+      const top = padding;
+      const bottom = height - padding;
+      const chartWidth = right - left;
+      const chartHeight = bottom - top;
+      const maxValue = Math.max(...values, 1);
+      const pointCount = labels.length;
+      const stepX = pointCount > 1 ? chartWidth / (pointCount - 1) : chartWidth;
+
+      // Grid
+      ctx.strokeStyle = '#e6edf5';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i += 1) {
+        const y = top + (chartHeight * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(right, y);
+        ctx.stroke();
+      }
+
+      // Plot values
+      const points = values.map((value, index) => ({
+        x: left + stepX * index,
+        y: bottom - (chartHeight * value) / maxValue
+      }));
+
+      if (chartType === 'line') {
+        const gradient = ctx.createLinearGradient(left, top, right, top);
+        gradient.addColorStop(0, '#ff5a5f');
+        gradient.addColorStop(0.25, '#ff8a3c');
+        gradient.addColorStop(0.5, '#ffd15e');
+        gradient.addColorStop(0.75, '#39a8ff');
+        gradient.addColorStop(1, '#7c3aed');
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          if (index === 0) {
+            ctx.moveTo(point.x, point.y);
+          } else {
+            ctx.lineTo(point.x, point.y);
+          }
+        });
+        ctx.stroke();
+        const fillGradient = ctx.createLinearGradient(0, top, 0, bottom);
+        fillGradient.addColorStop(0, 'rgba(255, 90, 95, 0.24)');
+        fillGradient.addColorStop(0.6, 'rgba(255, 172, 71, 0.14)');
+        fillGradient.addColorStop(1, 'rgba(58, 199, 111, 0.08)');
+        ctx.fillStyle = fillGradient;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          if (index === 0) {
+            ctx.moveTo(point.x, point.y);
+          } else {
+            ctx.lineTo(point.x, point.y);
+          }
+        });
+        ctx.lineTo(right, bottom);
+        ctx.lineTo(left, bottom);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        const barWidth = Math.max(20, chartWidth / pointCount - 16);
+        points.forEach((point) => {
+          ctx.fillStyle = '#05a081';
+          ctx.fillRect(point.x - barWidth / 2, point.y, barWidth, bottom - point.y);
+        });
+      }
+
+      // Points and labels
+      ctx.fillStyle = '#1f4b63';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      labels.forEach((label, index) => {
+        const point = points[index];
+        if (chartType === 'line') {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#ff5a5f';
+          ctx.stroke();
+        }
+        const textY = bottom + 18;
+        ctx.fillStyle = '#1f4b63';
+        ctx.fillText(label, point.x, textY);
+      });
+
+      // Y-axis values
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i += 1) {
+        const value = Math.round(maxValue - (maxValue * i) / 4);
+        const y = top + (chartHeight * i) / 4 + 4;
+        ctx.fillText(formatKsh(value), left - 8, y);
+      }
+    }
+
+    function prepareCanvasContext(canvas, width, height) {
+      if (!canvas || !canvas.getContext) return null;
+      const ctx = canvas.getContext('2d');
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      return ctx;
+    }
+
+    function drawMiniLineChart(canvasId, labels, values) {
+      const canvas = document.getElementById(canvasId);
+      const width = canvas?.clientWidth || 320;
+      const height = canvas?.clientHeight || 200;
+      const ctx = prepareCanvasContext(canvas, width, height);
+      if (!ctx) return;
+
+      const padding = 28;
+      const left = padding;
+      const right = width - padding;
+      const top = padding;
+      const bottom = height - padding;
+      const chartWidth = right - left;
+      const chartHeight = bottom - top;
+      const maxValue = Math.max(...values, 1);
+      const points = values.map((value, index) => ({
+        x: left + (chartWidth * (index / Math.max(labels.length - 1, 1))),
+        y: bottom - (chartHeight * value) / maxValue
+      }));
+
+      ctx.strokeStyle = '#1f67a8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(31, 103, 168, 0.14)';
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.lineTo(points[points.length - 1]?.x || left, bottom);
+      ctx.lineTo(left, bottom);
+      ctx.closePath();
+      ctx.fill();
+
+      points.forEach((point) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#1f67a8';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = '#1f4b63';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      points.forEach((point, index) => {
+        ctx.fillText(labels[index] || '', point.x, bottom + 18);
+      });
+
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i += 1) {
+        const y = top + (chartHeight * i) / 4;
+        ctx.fillText(formatKsh(Math.round(maxValue - (maxValue * i) / 4)), left - 8, y + 4);
+      }
+    }
+
+    function drawMiniBarChart(canvasId, labels, values, colors = []) {
+      const canvas = document.getElementById(canvasId);
+      const width = canvas?.clientWidth || 320;
+      const height = canvas?.clientHeight || 200;
+      const ctx = prepareCanvasContext(canvas, width, height);
+      if (!ctx) return;
+
+      const padding = 28;
+      const left = padding;
+      const right = width - padding;
+      const top = padding;
+      const bottom = height - padding;
+      const chartWidth = right - left;
+      const chartHeight = bottom - top;
+      const maxValue = Math.max(...values, 1);
+      const barWidth = Math.max(24, chartWidth / labels.length - 18);
+
+      labels.forEach((label, index) => {
+        const value = values[index] || 0;
+        const x = left + (chartWidth / labels.length) * index + ((chartWidth / labels.length) - barWidth) / 2;
+        const y = bottom - (chartHeight * value) / maxValue;
+        ctx.fillStyle = colors[index] || '#05a081';
+        ctx.fillRect(x, y, barWidth, bottom - y);
+
+        ctx.fillStyle = '#1f4b63';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x + barWidth / 2, bottom + 18);
+      });
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#1f4b63';
+      for (let i = 0; i <= 4; i += 1) {
+        const y = top + (chartHeight * i) / 4;
+        ctx.fillText(formatKsh(Math.round(maxValue - (maxValue * i) / 4)), left - 8, y + 4);
+      }
+    }
+
+    function drawPieChart(canvasId, labels, values, colors = []) {
+      const canvas = document.getElementById(canvasId);
+      const width = canvas?.clientWidth || 320;
+      const height = canvas?.clientHeight || 200;
+      const ctx = prepareCanvasContext(canvas, width, height);
+      if (!ctx) return;
+
+      const total = values.reduce((sum, value) => sum + Number(value || 0), 0) || 1;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) * 0.28;
+      let startAngle = -Math.PI / 2;
+
+      labels.forEach((label, index) => {
+        const slice = (values[index] || 0) / total;
+        const endAngle = startAngle + slice * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[index] || `hsl(${(index * 72) % 360}, 72%, 53%)`;
+        ctx.fill();
+        startAngle = endAngle;
+      });
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      startAngle = -Math.PI / 2;
+      labels.forEach((label, index) => {
+        const slice = (values[index] || 0) / total;
+        const endAngle = startAngle + slice * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.stroke();
+        startAngle = endAngle;
+      });
+
+      ctx.fillStyle = '#1f4b63';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'left';
+      labels.forEach((label, index) => {
+        const text = `${label}: ${formatKsh(values[index] || 0)}`;
+        ctx.fillText(text, width - 140, 28 + index * 18);
+      });
+    }
+
+    function renderGraphsPage() {
+      const periodContainer = document.getElementById('graphsPeriodBars');
+      const accountContainer = document.getElementById('graphsAccountBreakdown');
+      const individualContainer = document.getElementById('graphsIndividualPerformance');
+      const commentaryContainer = document.getElementById('graphsCommentary');
+      const badge = document.getElementById('graphsDirectionBadge');
+      const typeSelect = document.getElementById('graphsTypeSelect');
+      const periodSelect = document.getElementById('graphsPeriodSelect');
+      if (!periodContainer || !accountContainer || !individualContainer || !commentaryContainer || !badge) return;
+
+      const periodKeys = [
+        { key: 'daily', label: 'Today' },
+        { key: 'weekly', label: 'This Week' },
+        { key: 'monthly', label: 'This Month' },
+        { key: 'annual', label: 'This Year' }
+      ];
+
+      const periodTotals = periodKeys.map((period) => ({
+        ...period,
+        value: Number((savingsHistory[period.key] || {}).total || 0)
+      }));
+      const maxPeriodValue = Math.max(...periodTotals.map((item) => item.value), 1);
+      const periodHtml = periodTotals.map((item) => {
+        const width = Math.max(10, Math.round((item.value / maxPeriodValue) * 100));
+        return `
+          <div style="display:flex; flex-direction:column; gap:0.35rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.95rem; color:#1f4b63;">
+              <span>${item.label}</span>
+              <span>${formatKsh(item.value)}</span>
+            </div>
+            <div style="background:#eaf1f8; border-radius:999px; height:14px; overflow:hidden;">
+              <div style="width:${width}%; min-width:10%; height:100%; background:#1f67a8;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      periodContainer.innerHTML = periodHtml;
+
+      const totals = {
+        emergency: members.reduce((sum, m) => sum + Number(m.emergency || 0), 0),
+        education: members.reduce((sum, m) => sum + Number(m.education || 0), 0),
+        development: members.reduce((sum, m) => sum + Number(m.development || 0), 0),
+        fixedDeposit: members.reduce((sum, m) => sum + Number(m.fixedDeposit || 0), 0)
+      };
+      const savingsTotal = totals.emergency + totals.education + totals.development + totals.fixedDeposit;
+      const loanInterestIncome = members.reduce((sum, member) => {
+        const loans = Array.isArray(member.loans) ? member.loans : [];
+        return sum + loans.reduce((loanSum, loan) => loanSum + Number(loan.interest || 0), 0);
+      }, 0);
+      const loansOutstanding = members.reduce((sum, m) => sum + Number(m.loanBalance || 0), 0);
+      const availableReserves = totals.emergency + totals.education + totals.fixedDeposit;
+      const profitSaved = totals.development || loanInterestIncome;
+      const totalAssets = availableReserves + loansOutstanding + profitSaved;
+
+      const filterText = '';
+      const sortValue = 'balanceDesc';
+      const sortedMembers = getSortedFilteredMembers();
+      const totalMatches = sortedMembers.length;
+      const visibleCount = Math.min(4, totalMatches);
+      const individualList = sortedMembers.slice(0, visibleCount);
+      const individualLabel = `Showing top ${visibleCount} members by savings`; 
+      const individualHtml = individualList.length ? `
+        <div style="margin-bottom:0.75rem; color:#1f4b63; font-size:0.95rem; font-weight:600;">${individualLabel}</div>
+        ${individualList.map((member) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; padding:0.8rem; background:#f9fcff; border:1px solid #dfe7ef; border-radius:16px;">
+          <div>
+            <strong>${member.name || 'Unknown'}</strong><br>
+            <small style="color:#678;">Total: ${formatKsh(member.totalSavings || 0)}</small>
+          </div>
+          <div style="text-align:right; color:#0b2a3b; font-weight:bold;">${formatKsh(member.totalSavings || 0)}</div>
+        </div>
+      `).join('')}` : '<div style="color:#8aa1b5;">No member performance data available yet.</div>';
+      individualContainer.innerHTML = individualHtml;
+
+      const toggleButton = document.getElementById('graphsMembersToggleBtn');
+      if (toggleButton) {
+        toggleButton.style.display = 'none';
+      }
+
+      const selectedType = typeSelect?.value || 'bar';
+      const bounceLabels = periodTotals.map((item) => item.label);
+      const bounceValues = periodTotals.map((item) => item.value);
+      const chartLabels = ['Total savings', 'Loans out', 'Profit'];
+      const chartValues = [savingsTotal, loansOutstanding, profitSaved];
+      const chartTitle = 'Group savings, loans and profit';
+      const mainChartTitle = document.getElementById('graphsMainChartTitle');
+      if (mainChartTitle) {
+        mainChartTitle.textContent = chartTitle;
+      }
+
+      const accountLabels = ['Emergency', 'Education', 'Development', 'Fixed deposit'];
+      const accountValues = [totals.emergency, totals.education, totals.development, totals.fixedDeposit];
+
+      drawGraphsCanvas(selectedType, chartLabels, chartValues);
+      drawMiniLineChart('graphsBounceLineChart', bounceLabels, bounceValues);
+
+      const summary1 = document.getElementById('graphsSummaryValue1');
+      const summary2 = document.getElementById('graphsSummaryValue2');
+      const summary3 = document.getElementById('graphsSummaryValue3');
+      const summary4 = document.getElementById('graphsSummaryValue4');
+      const summary5 = document.getElementById('graphsSummaryValue5');
+      if (summary1) summary1.textContent = formatKsh(savingsTotal);
+      if (summary2) summary2.textContent = formatKsh(loansOutstanding);
+      if (summary3) summary3.textContent = formatKsh(profitSaved);
+      if (summary4) summary4.textContent = totalAssets ? `${Math.round((profitSaved / totalAssets) * 100)}%` : '0%';
+      if (summary5) summary5.textContent = formatKsh(totalAssets);
+
+      const commentary = getGraphCommentary(totals);
+      commentaryContainer.textContent = commentary;
+      badge.textContent = commentary.includes('right direction') ? 'Positive direction' : commentary.includes('stronger') ? 'Improving' : 'Needs focus';
+      badge.style.background = commentary.includes('right direction') ? '#ddf0e5' : commentary.includes('stronger') ? '#fef3c7' : '#fde8e8';
+      badge.style.color = commentary.includes('right direction') ? '#1a6e4a' : commentary.includes('stronger') ? '#92400e' : '#a13d3d';
+
+      const accountBreakdownHtml = accountLabels.map((label, index) => {
+        const value = accountValues[index];
+        const percent = Math.round((value / (accountValues.reduce((sum, val) => sum + val, 0) || 1)) * 100);
+        return `
+          <div style="display:flex; justify-content:space-between; gap:0.5rem; padding:0.75rem; background:#f8fbff; border:1px solid #dce9f2; border-radius:16px;">
+            <div>
+              <strong>${label}</strong><br>
+              <small style="color:#6e7c8f;">${percent}% of total</small>
+            </div>
+            <div style="font-weight:700; color:#1f4b63;">${formatKsh(value)}</div>
+          </div>`;
+      }).join('');
+      if (accountContainer) {
+        accountContainer.innerHTML = accountBreakdownHtml;
+      }
     }
 
     function renderBestSaverLeaderboard() {
@@ -2798,6 +3338,7 @@
       pageUpdate: document.getElementById('pageUpdate'),
       pageCharges: document.getElementById('pageCharges'),
       pageSavingsHistory: document.getElementById('pageSavingsHistory'),
+      pageGraphs: document.getElementById('pageGraphs'),
       pageBestSaver: document.getElementById('pageBestSaver'),
       pageForms: document.getElementById('pageForms'),
       pageAdmin: document.getElementById('pageAdmin')
@@ -2806,17 +3347,23 @@
       tabs.forEach(b => b.classList.remove('active'));
       const matchingButton = Array.from(tabs).find(btn => btn.dataset.page === targetPage);
       if (matchingButton) matchingButton.classList.add('active');
-      Object.keys(pages).forEach(key => pages[key].classList.remove('active-page'));
-      if (pages[targetPage]) pages[targetPage].classList.add('active-page');
+      Object.values(pages).forEach((page) => page?.classList.remove('active-page'));
+      pages[targetPage]?.classList.add('active-page');
     }
     tabs.forEach(btn => {
       btn.addEventListener('click', function() {
         activatePage(this.dataset.page);
+        if (this.dataset.page === 'pageGraphs') {
+          renderGraphsPage();
+        }
       });
     });
     document.querySelectorAll('.hero-actions button[data-page]').forEach(btn => {
       btn.addEventListener('click', function() {
         activatePage(this.dataset.page);
+        if (this.dataset.page === 'pageGraphs') {
+          renderGraphsPage();
+        }
       });
     });
     activatePage('pageHome');
@@ -2839,10 +3386,6 @@
       }
     });
 
-    // ---------- ADMIN: FORM LIBRARY ----------
-    const uploadFormBtn = document.getElementById('adminUploadFormBtn');
-    const uploadFormInput = document.getElementById('adminFormUpload');
-    const uploadFormName = document.getElementById('adminFormName');
     const formsPageUploadBtn = document.getElementById('formsPageUploadBtn');
     const formsPageUploadInput = document.getElementById('formsPageFormUpload');
     const formsPageUploadName = document.getElementById('formsPageFormName');
@@ -2915,12 +3458,6 @@
         }
       };
       reader.readAsDataURL(file);
-    }
-
-    if (uploadFormBtn && uploadFormInput) {
-      uploadFormBtn.addEventListener('click', function() {
-        handleFormUpload(uploadFormInput, uploadFormName, document.getElementById('adminFormUploadFeedback'));
-      });
     }
 
     if (formsPageUploadBtn && formsPageUploadInput) {
@@ -3142,6 +3679,7 @@
 
     // ---------- INIT ----------
     renderAll();
+    attachGraphControls();
     updatePreview();
     updateAvailableBalance();
     renderChargesHistory();
