@@ -12,7 +12,7 @@
     let inactivityTimer = null;
     const ADMIN_MEMBER_RESET_PASSWORD = '1234';
     const ADMIN_DEFAULT_PASSWORD = '34717215';
-    const INACTIVITY_TIMEOUT_MS = 7 * 60 * 1000;
+    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
     function isAdminRole(roleValue) {
       const normalizedRole = String(roleValue || '').trim().toLowerCase();
