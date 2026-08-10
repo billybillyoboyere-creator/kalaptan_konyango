@@ -30,24 +30,91 @@
     const appShell = document.querySelector('.app-shell');
     const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
     const panelToggleBtn = document.getElementById('panelToggleBtn');
+    const mobileSidebarBackdrop = document.getElementById('mobileSidebarBackdrop');
+    const SIDEBAR_COLLAPSE_KEY = 'kalapatan-sidebar-collapsed';
+    let desktopSidebarCollapsed = false;
+    let mobileSidebarOpen = false;
+
+    function isMobileViewport() {
+      return window.matchMedia('(max-width: 980px)').matches;
+    }
 
     function updateSidebarToggleState() {
-      const collapsed = appShell && appShell.classList.contains('sidebar-collapsed');
+      const mobile = isMobileViewport();
+      const mobileOpen = !!(appShell && appShell.classList.contains('mobile-sidebar-open'));
+      const collapsed = !!(appShell && appShell.classList.contains('sidebar-collapsed'));
       if (toggleSidebarBtn) {
-        toggleSidebarBtn.querySelector('i').className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
-        toggleSidebarBtn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+        if (mobile) {
+          toggleSidebarBtn.querySelector('i').className = mobileOpen ? 'fas fa-xmark' : 'fas fa-bars';
+          toggleSidebarBtn.title = mobileOpen ? 'Close menu' : 'Open menu';
+          toggleSidebarBtn.setAttribute('aria-expanded', String(mobileOpen));
+        } else {
+          toggleSidebarBtn.querySelector('i').className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+          toggleSidebarBtn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+          toggleSidebarBtn.setAttribute('aria-expanded', String(!collapsed));
+        }
       }
       if (panelToggleBtn) {
-        panelToggleBtn.querySelector('i').className = collapsed ? 'fas fa-bars' : 'fas fa-times';
-        panelToggleBtn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+        if (mobile) {
+          panelToggleBtn.querySelector('i').className = mobileOpen ? 'fas fa-xmark' : 'fas fa-bars';
+          panelToggleBtn.title = mobileOpen ? 'Close menu' : 'Open menu';
+          panelToggleBtn.setAttribute('aria-expanded', String(mobileOpen));
+        } else {
+          panelToggleBtn.querySelector('i').className = collapsed ? 'fas fa-bars' : 'fas fa-times';
+          panelToggleBtn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+          panelToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+        }
       }
     }
 
-    function setSidebarCollapsed(collapsed) {
-      if (appShell) {
-        appShell.classList.toggle('sidebar-collapsed', collapsed);
+    function applySidebarState() {
+      if (!appShell) {
+        return;
+      }
+      const mobile = isMobileViewport();
+      if (mobile) {
+        appShell.classList.remove('sidebar-collapsed');
+        appShell.classList.toggle('mobile-sidebar-open', mobileSidebarOpen);
+        appShell.setAttribute('data-collapsed', '0');
+      } else {
+        appShell.classList.toggle('sidebar-collapsed', desktopSidebarCollapsed);
+        appShell.classList.remove('mobile-sidebar-open');
+        mobileSidebarOpen = false;
+        appShell.setAttribute('data-collapsed', desktopSidebarCollapsed ? '1' : '0');
       }
       updateSidebarToggleState();
+    }
+
+    function setSidebarCollapsed(collapsed) {
+      desktopSidebarCollapsed = !!collapsed;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSE_KEY, desktopSidebarCollapsed ? '1' : '0');
+      } catch (error) {
+        console.warn('Unable to persist sidebar state', error);
+      }
+      applySidebarState();
+    }
+
+    function openMobileSidebar() {
+      mobileSidebarOpen = true;
+      applySidebarState();
+    }
+
+    function closeMobileSidebar() {
+      mobileSidebarOpen = false;
+      applySidebarState();
+    }
+
+    function toggleSidebarMenu() {
+      if (isMobileViewport()) {
+        if (mobileSidebarOpen) {
+          closeMobileSidebar();
+        } else {
+          openMobileSidebar();
+        }
+      } else {
+        setSidebarCollapsed(!desktopSidebarCollapsed);
+      }
     }
 
     function logoutSession(reason = 'manual') {
@@ -122,15 +189,29 @@
 
     if (toggleSidebarBtn) {
       toggleSidebarBtn.addEventListener('click', function() {
-        setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed'));
+        toggleSidebarMenu();
       });
     }
     if (panelToggleBtn) {
       panelToggleBtn.addEventListener('click', function() {
-        setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed'));
+        toggleSidebarMenu();
       });
     }
-    setSidebarCollapsed(false);
+    if (mobileSidebarBackdrop) {
+      mobileSidebarBackdrop.addEventListener('click', closeMobileSidebar);
+    }
+    window.addEventListener('resize', function() {
+      applySidebarState();
+    });
+
+    let storedSidebarState = '0';
+    try {
+      storedSidebarState = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) || '0';
+    } catch (error) {
+      console.warn('Unable to read sidebar state', error);
+    }
+    desktopSidebarCollapsed = storedSidebarState === '1';
+    applySidebarState();
 
     document.getElementById('loginBtn').addEventListener('click', async function() {
       const username = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -3353,6 +3434,9 @@
     tabs.forEach(btn => {
       btn.addEventListener('click', function() {
         activatePage(this.dataset.page);
+        if (isMobileViewport()) {
+          closeMobileSidebar();
+        }
         if (this.dataset.page === 'pageGraphs') {
           renderGraphsPage();
         }
@@ -3361,6 +3445,9 @@
     document.querySelectorAll('.hero-actions button[data-page]').forEach(btn => {
       btn.addEventListener('click', function() {
         activatePage(this.dataset.page);
+        if (isMobileViewport()) {
+          closeMobileSidebar();
+        }
         if (this.dataset.page === 'pageGraphs') {
           renderGraphsPage();
         }
